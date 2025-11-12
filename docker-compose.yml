@@ -1,0 +1,88 @@
+# Versión del archivo de Docker Compose
+version: '3.8'
+
+# Aquí definimos todos los servicios (contenedores) que necesita la aplicación
+services:
+
+  # --- 1. El Servicio de Base de Datos (MySQL) ---
+  #  Crear BBDD (MySQL)
+  db-tiendas:
+    image: mysql:8.0
+    container_name: nutricionista-mysql
+    restart: always
+    environment:
+      # Define las credenciales para la base de datos
+      # !! CAMBIA ESTA CONTRASEÑA por una segura
+      MYSQL_ROOT_PASSWORD: password_segura 
+      MYSQL_DATABASE: precios_comparados
+    ports:
+      # Expone el puerto de MySQL a tu máquina local (para que puedas conectarte
+      # con una herramienta gráfica si quieres)
+      - "3306:3306"
+    volumes:
+      # Esto asegura que los datos de tu base de datos se guarden
+      # aunque apagues y enciendas los contenedores.
+      - db_data:/var/lib/mysql
+
+
+
+
+  # --- 2. El Servicio de ETL (Scraping y Limpieza) ---
+  # Usa el código de tu carpeta 'etl-scripts'
+  etl-scripts:
+    build:
+      # Le dice a Docker que busque un 'Dockerfile' en esta carpeta
+      context: ./etl-scripts 
+    container_name: etl-pipeline
+    environment:
+      # Pasa las credenciales de la DB al contenedor para que pueda conectarse
+      # IMPORTANTE: El 'host' es el nombre del servicio de la DB ('db-tiendas')
+      DB_HOST: db-tiendas 
+      DB_NAME: precios_comparados
+      DB_USER: root
+      DB_PASS: password_segura # !! USA LA MISMA CONTRASEÑA
+    depends_on:
+      # Le dice a Docker que espere a que la BBDD esté lista antes de iniciar este
+      - db-tiendas 
+
+
+
+
+  # --- 3. El Servicio de Backend (Lógica de la App y IA) ---
+  # Usa el código de tu carpeta 'backend_logica'
+  backend-logica:
+    build:
+      context: ./backend_logica
+    container_name: backend-mvp
+    ports:
+      # Expone el puerto de tu API (ej. 8000) a tu máquina local
+      - "8000:8000" 
+    environment:
+      DB_HOST: db-tiendas
+      DB_NAME: precios_comparados
+      DB_USER: root
+      DB_PASS: password_segura
+    depends_on:
+      - db-tiendas
+
+
+
+
+
+
+  # --- 4. El Servicio de Frontend ---
+  # Usa el código de tu carpeta 'frontend_logica'
+  frontend-logica:
+    build:
+      context: ./frontend_logica
+    container_name: frontend-mvp
+    ports:
+      # Expone el puerto de tu app de frontend (ej. 3000 para React/Vue)
+      - "3000:3000"
+    depends_on:
+      # El frontend depende de que el backend esté listo
+      - backend-logica
+
+# Definimos el 'volumen' que usará la DB para guardar los datos
+volumes:
+  db_data:
