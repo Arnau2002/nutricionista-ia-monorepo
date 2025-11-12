@@ -1,0 +1,18 @@
+EJEMPLO
+
+Pasos para Encontrar la API_url:
+
+* Abre la página https://tienda.mercadona.es/categories/112 en el navegador.
+
+* Abre las Herramientas de Desarrollador.
+
+* Ve a la pestaña "Network".
+
+* Recarga la página (F5) con la pestaña "Network" abierta.
+
+* Filtra las peticiones por "Fetch/XHR" y busca una que se llame algo como "categories/112/products" o similar, y que devuelva una respuesta en formato JSON.
+
+ver imagen.png
+
+
+Una vez que encuentres la URL de la API (ej: "https://tienda.mercadona.es/api/categories/112/?lang=es&wh=vlc1" ), puedes usar el código.
