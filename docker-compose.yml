@@ -45,6 +45,10 @@ services:
       # Le dice a Docker que espere a que la BBDD esté lista antes de iniciar este
       - db-tiendas 
 
+    volumes:
+      # MAPEAMOS la carpeta LOCAL ./export a la carpeta /app/export dentro del contenedor
+      - ./export:/app/export
+
 
 
 
@@ -64,6 +68,8 @@ services:
       DB_PASS: password_segura
     depends_on:
       - db-tiendas
+
+    
 
 
 

@@ -14,4 +14,4 @@ COPY . .
 
 # 5. Comando para ejecutar la aplicación cuando el contenedor se inicie
 # (Esto asume que usas FastAPI/Uvicorn. Ajústalo a tu servidor)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,0 +1,4 @@
+export/*.csv
+export/*.xlsx
+__pycache__/
+.env
