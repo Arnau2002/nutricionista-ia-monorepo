@@ -1,1 +1,0 @@
-ejecutar simplemente: python main_supermarket.py en la terminal
