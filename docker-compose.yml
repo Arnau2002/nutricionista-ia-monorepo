@@ -49,6 +49,8 @@ services:
     volumes:
       # MAPEAMOS la carpeta LOCAL ./export a la carpeta /app/export dentro del contenedor
       - ./export:/app/export
+    env_file:
+      - .env
 
 
 

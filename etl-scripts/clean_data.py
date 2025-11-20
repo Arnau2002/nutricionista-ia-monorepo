@@ -1,91 +1,96 @@
 import pandas as pd
 import re
-from datetime import datetime
 import os
-from sqlalchemy import create_engine # Comentado hasta que lo usemos en el paso de carga
 
 # --- FUNCIÓN CLAVE: ESTANDARIZACIÓN ---
 def estandarizar_nombre(nombre_crudo, tienda):
-    """
-    Limpia el nombre de producto para crear una clave universal.
-    """
-    if pd.isna(nombre_crudo):
-        return None
-        
-    # 1. CORRECCIÓN DE ENCODING "SUCIO" (UTF-8 interpretado como Latin-1)
-    # Esto arregla los caracteres Ãº, Ã³, etc. si ya vienen rotos
+    if pd.isna(nombre_crudo): return None
+    
+    # 1. Corrección de Encoding (Tildes y símbolos)
     try:
-        # Intentamos arreglar el texto si viene mal codificado
         nombre = str(nombre_crudo).encode('cp1252').decode('utf-8')
     except:
-        # Si falla, lo dejamos como estaba (ya era correcto)
         nombre = str(nombre_crudo)
-
+    
     nombre = nombre.lower()
     
-    # 2. ELIMINAR MARCAS COMUNES
+    # 2. Eliminar Marcas (Para que "Leche Hacendado" sea igual a "Leche DIA")
     if tienda == 'Mercadona':
-        nombre = re.sub(r'\b(hacendado|bosque verde|gran seleccion|picual|casa juncal)\b', '', nombre)
+        nombre = re.sub(r'\b(hacendado|bosque verde|deliplus|compy)\b', '', nombre)
     elif tienda == 'Dia':
-        nombre = re.sub(r'\b(dia|basico|selección|seleccion)\b', '', nombre)
+        nombre = re.sub(r'\b(dia|selección mundial|nuestras marcas|delicious)\b', '', nombre)
         
-    # 3. ELIMINAR INFORMACIÓN DE ENVASE (CUIDANDO LOS GRADOS º)
-    # Eliminamos '1 L', '500 g', 'pack', etc.
-    # El (?<![\d,]) asegura que no borremos algo si es parte de una medida técnica
+    # 3. Limpieza de Unidades (1L, 500g...)
     unidades = r'(g|kg|ml|l|ud|unidades|bote|paquete|envase|brik|garrafa|docena|spray|unidad)'
     nombre = re.sub(r'(\d+[.,]?\d*)\s*' + unidades, '', nombre)
     
-    # 4. LIMPIEZA DE "BASURA" PERO RESPETANDO GRADOS (º) Y PORCENTAJES (%)
-    # Borramos signos raros, pero dejamos º (para aceite) y % (para chocolate/leche)
+    # 4. Limpieza final
     nombre = re.sub(r'[^\w\s\-\.,/%º]', '', nombre) 
-    
-    # 5. LIMPIEZA FINAL DE ESPACIOS
     nombre = re.sub(r'\s+', ' ', nombre).strip()
     
     return nombre
 
-# --- FUNCIÓN DE ORQUESTACIÓN ---
 def gestionar_transformacion(ruta_mercadona, ruta_dia):
-    print("🚀 Iniciando Transformación de Datos (T)...")
+    print("🚀 Iniciando Transformación Dual (Mercadona + DIA)...")
     
-    # 1. Cargar datos de Mercadona
-    # Usamos encoding='utf-8' explícito para leer
-    try:
-        df_m = pd.read_csv(ruta_mercadona, encoding='utf-8')
-    except UnicodeDecodeError:
-        # Plan B si falla: intentar con latin-1
-        df_m = pd.read_csv(ruta_mercadona, encoding='latin-1')
+    df_final = pd.DataFrame()
+    
+    # --- PROCESAR MERCADONA ---
+    if os.path.exists(ruta_mercadona):
+        print("🛒 Procesando Mercadona...")
+        try:
+            df_m = pd.read_csv(ruta_mercadona, encoding='utf-8')
+        except:
+            df_m = pd.read_csv(ruta_mercadona, encoding='latin-1')
+            
+        df_m['tienda'] = 'Mercadona'
+        # Normalizar columnas si es necesario (Mercadona ya viene bien del script)
+        df_final = pd.concat([df_final, df_m], ignore_index=True)
+    else:
+        print("⚠️ No se encontró el archivo de Mercadona.")
+
+    # --- PROCESAR DIA ---
+    if os.path.exists(ruta_dia):
+        print("🔴 Procesando DIA...")
+        try:
+            df_d = pd.read_csv(ruta_dia, encoding='utf-8')
+        except:
+            df_d = pd.read_csv(ruta_dia, encoding='latin-1')
+
+        df_d['tienda'] = 'Dia'
         
-    df_m['tienda'] = 'Mercadona'
-    
-    # 2. Consolidar (por ahora solo Mercadona)
-    df_total = df_m 
-    
-    # 3. Aplicar la estandarización
-    df_total['nombre_estandar'] = df_total.apply(
+        # IMPORTANTE: DIA puede tener nombres de columnas distintos. Los unificamos aquí.
+        # Asegúrate de que tu scraper de DIA genere columnas compatibles o renómbralas aquí:
+        # df_d = df_d.rename(columns={'nombre_producto': 'nombre', 'precio': 'precio_actual', ...})
+        
+        df_final = pd.concat([df_final, df_d], ignore_index=True)
+    else:
+        print("⚠️ No se encontró el archivo de DIA.")
+
+    if df_final.empty:
+        print("❌ No hay datos para procesar.")
+        return
+
+    # --- ESTANDARIZACIÓN COMÚN ---
+    print("🧹 Limpiando y Estandarizando nombres...")
+    df_final['nombre_estandar'] = df_final.apply(
         lambda row: estandarizar_nombre(row['nombre'], row['tienda']), axis=1
     )
     
-    # 4. Arreglar precios (tu corrección anterior)
-    df_limpio = df_total.copy()
-    df_limpio['precio_referencia'] = df_limpio['precio_referencia'].astype(str).str.replace(r'[^0-9.,]', '', regex=True).str.replace(',', '.').astype(float)
+    # Limpieza de precios
+    df_final['precio_referencia'] = df_final['precio_referencia'].astype(str).str.replace(r'[^0-9.,]', '', regex=True).str.replace(',', '.').astype(float)
 
     # Seleccionar columnas finales
-    cols_finales = ['id_producto', 'nombre', 'nombre_estandar', 'precio_actual', 'precio_referencia', 'categoria', 'tienda', 'unidad_medida']
-    # Filtramos solo las que existan para evitar errores si falta alguna
-    cols_existentes = [c for c in cols_finales if c in df_limpio.columns]
-    df_limpio = df_limpio[cols_existentes]
+    cols = ['id_producto', 'nombre', 'nombre_estandar', 'precio_actual', 'precio_referencia', 'categoria', 'tienda', 'unidad_medida']
+    df_final = df_final[[c for c in cols if c in df_final.columns]]
 
-    print(f"✅ Se han estandarizado {len(df_limpio)} productos.")
-    
-    # 5. GUARDAR CON ENCODING MÁGICO PARA EXCEL (utf-8-sig)
-    output_path_clean = "export/productos_limpios_estandarizados.csv"
-    df_limpio.to_csv(output_path_clean, index=False, encoding='utf-8-sig')
-    print(f"💾 Datos limpios guardados en: {output_path_clean}")
-    
-    return df_limpio
+    # Guardar
+    output = "export/productos_limpios_estandarizados.csv"
+    df_final.to_csv(output, index=False, encoding='utf-8-sig')
+    print(f"✅ ¡Éxito! Archivo combinado guardado con {len(df_final)} productos.")
 
 if __name__ == "__main__":
-    ruta_m = "export/productos_mercadona_raw.csv"
-    ruta_d = "export/productos_dia_raw.csv" # Placeholder
-    gestionar_transformacion(ruta_m, ruta_d)
+    gestionar_transformacion(
+        "export/productos_mercadona_raw.csv",
+        "export/productos_dia_raw.csv"
+    )
