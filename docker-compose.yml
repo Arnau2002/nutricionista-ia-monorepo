@@ -41,6 +41,7 @@ services:
       DB_NAME: precios_comparados
       DB_USER: root
       DB_PASS: password_segura # !! USA LA MISMA CONTRASEÑA
+      QDRANT_HOST: vector-db
     depends_on:
       # Le dice a Docker que espere a que la BBDD esté lista antes de iniciar este
       - db-tiendas 
@@ -66,6 +67,7 @@ services:
       DB_NAME: precios_comparados
       DB_USER: root
       DB_PASS: password_segura
+      QDRANT_HOST: vector-db
     depends_on:
       - db-tiendas
 
@@ -89,6 +91,27 @@ services:
       # El frontend depende de que el backend esté listo
       - backend-logica
 
+
+
+
+
+  # --- 5. Base de Datos Vectorial (Qdrant) ---
+  # Este es el cerebro semántico para búsquedas tipo "comida sana"
+  vector-db:
+    image: qdrant/qdrant
+    container_name: nutricionista-qdrant
+    restart: always
+    ports:
+      - "6333:6333" # Puerto para la API y el Dashboard
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+
+
+
+
+
 # Definimos el 'volumen' que usará la DB para guardar los datos
 volumes:
   db_data:
+  qdrant_data:
