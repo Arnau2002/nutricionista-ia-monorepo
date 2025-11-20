@@ -2,9 +2,9 @@
   "name": "frontend-mvp",
   "version": "1.0.0",
   "description": "Frontend logic for NutricionistIA MVP",
-  "main": "index.js",
+  "main": "index.php",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.php"
   },
   "dependencies": {},
   "devDependencies": {}

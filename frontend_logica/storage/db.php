@@ -2,7 +2,7 @@
 return [
   'host' => '127.0.0.1',
   'user' => 'root',
-  'pass' => '',
-  'db'   => 'Nutricionista',
+  'pass' => 'password_segura',
+  'db'   => 'precios_comparados', 
   'charset' => 'utf8mb4'
 ];

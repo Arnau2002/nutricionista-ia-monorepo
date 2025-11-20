@@ -188,6 +188,7 @@ input:focus {
   cursor: pointer;
   font-weight: 600;
   width: 100%;
+
 }
 
 .btn:hover {
@@ -220,4 +221,84 @@ a {
 
 a:hover {
   color: var(--pri);
+}
+
+.LogInP{
+  display: flex;
+ justify-content: center;
+}
+
+.LogInBtn{
+  max-width: 200px;
+  display: flex;
+ justify-content: center;
+}
+.tag-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.intolerance-row {
+  display: flex;
+  gap: 8px;
+}
+
+.intolerance-input {
+  flex: 1;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px dashed #334155;
+  color: var(--pri-light);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.btn-ghost:hover {
+  border-style: solid;
+  background: rgba(59, 130, 246, 0.08);
+  transform: translateY(-1px);
+}
+
+.btn-ghost span.plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--pri);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* que ciertos bloques ocupen todo el ancho en el grid */
+.full-width {
+  grid-column: 1 / -1;
+}
+
+textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: var(--text);
+  font-size: 15px;
+  resize: vertical;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--pri);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, .3);
 }
