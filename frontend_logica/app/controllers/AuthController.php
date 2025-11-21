@@ -130,7 +130,7 @@ class AuthController
         $flash   = $_SESSION['flash'] ?? null;
         if (isset($_SESSION['flash'])) unset($_SESSION['flash']);
 
-        include __DIR__ . '/../views/layout.php';
+        include __DIR__ . '/../Views/layout.php';
     }
 
     protected function setFlash(string $message): void

@@ -1,6 +1,6 @@
 <?php
 return [
-  'host' => '127.0.0.1',
+  'host' => 'db-tiendas',
   'user' => 'root',
   'pass' => 'password_segura',
   'db'   => 'precios_comparados', 

@@ -88,7 +88,7 @@ services:
     container_name: frontend-mvp
     ports:
       # Expone el puerto de tu app de frontend (ej. 3000 para React/Vue)
-      - "3000:3000"
+      - "3000:80"
     depends_on:
       # El frontend depende de que el backend esté listo
       - backend-logica

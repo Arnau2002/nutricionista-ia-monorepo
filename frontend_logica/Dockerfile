@@ -1,15 +1,17 @@
-# Dockerfile para el Frontend (Asumiendo que usa Node/NPM)
-FROM node:20-alpine
+# Usamos la imagen oficial de PHP con Apache
+FROM php:8.2-apache
 
-WORKDIR /app
+# 1. Instalar extensiones necesarias para conectar con MySQL
+RUN docker-php-ext-install mysqli pdo pdo_mysql
 
-# Instalar dependencias
-COPY package.json .
-RUN npm install
+# 2. Activar mod_rewrite de Apache (necesario para tu enrutamiento index.php?r=...)
+RUN a2enmod rewrite
 
-# Copiar el código del proyecto
-COPY . .
+# 3. Copiar todo tu código a la carpeta pública del servidor
+COPY . /var/www/html/
 
-# Comando para arrancar el servidor de frontend
-# (Ajustar si usas npm start, yarn start, o un build final)
-CMD ["npm", "run", "dev"]
+# 4. Dar permisos al usuario de Apache (www-data) para que pueda leer/escribir si es necesario
+RUN chown -R www-data:www-data /var/www/html
+
+# Apache expone el puerto 80 internamente
+EXPOSE 80
