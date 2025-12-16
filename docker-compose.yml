@@ -63,7 +63,7 @@ services:
     container_name: backend-mvp
     ports:
       # Expone el puerto de tu API (ej. 8000) a tu máquina local
-      - "8000:8000" 
+      - "8001:8000" 
     environment:
       DB_HOST: db-tiendas
       DB_NAME: precios_comparados
