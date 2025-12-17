@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer
 
 # --- CONFIGURACIÓN ---
 DB_USER = os.getenv('DB_USER', 'root')
-DB_PASS = os.getenv('DB_PASS', 'tu_password_segura') 
+DB_PASS = os.getenv('DB_PASS', 'password_segura') 
 DB_HOST = os.getenv('DB_HOST', 'db-tiendas')
 DB_NAME = os.getenv('DB_NAME', 'precios_comparados')
 DB_URL = f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
