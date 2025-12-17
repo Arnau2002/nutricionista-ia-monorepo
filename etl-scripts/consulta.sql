@@ -98,18 +98,14 @@ CREATE TABLE IF NOT EXISTS price_observation (
 );
 
 -- 8. ENTITY_EMBEDDING (Capa vectorial para búsquedas semánticas)
--- Aquí guardarás los vectores (embeddings) generados por tu modelo
--- para productos, tiendas o categorías.
 CREATE TABLE IF NOT EXISTS entity_embedding (
   embedding_id BIGINT AUTO_INCREMENT PRIMARY KEY,
   entity_type ENUM('product','store','category') NOT NULL,
   entity_id INT NOT NULL,
-  model VARCHAR(100) NOT NULL,         -- p.ej. 'text-embedding-3-small'
-  embedding LONGBLOB NOT NULL,         -- almacena el vector serializado (JSON, binario, etc.)
+  model VARCHAR(100) NOT NULL,
+  embedding LONGBLOB NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_entity_embedding (entity_type, entity_id, model)
-  -- Ojo: no se puede referenciar con FK a varias tablas a la vez;
-  -- la aplicación debe asegurar que (entity_type, entity_id) exista.
 );
 
 -- VISTA: Precio Enriquecido (Calcula precio por unidad base)
