@@ -6,6 +6,7 @@ import json
 import pandas as pd
 from io import StringIO
 from typing import List, Dict
+from pydantic import BaseModel
 
 app = FastAPI(
     title="Mercadona Category API",
@@ -100,3 +101,20 @@ def best_prices(category_id: int, lang: str = "es", wh: str = "vlc1"):
             }
 
     return {"items": list(mejores.values())}
+
+
+# Modelo de lo que te envía el Frontend
+class UserQuery(BaseModel):
+    query: str          # Ej: "Desayuno sin gluten"
+    intolerancias: List[str] = [] # Ej: ["gluten", "lactosa"]
+
+@app.post("/recommend")
+def recommend_products(request: UserQuery):
+    # 1. AQUÍ IMPRIMES PARA VER SI LLEGA
+    print(f"Buscando: {request.query} con filtros: {request.intolerancias}")
+
+    # 2. (MOCK) Por ahora devuelve datos falsos para que el Miembro 3 pueda trabajar
+    return [
+        {"name": "Leche de Soja", "price": 1.20, "supermarket": "Mercadona", "reason": "Es vegana"},
+        {"name": "Galletas Avena", "price": 1.50, "supermarket": "DIA", "reason": "Bajas en azúcar"}
+    ]
