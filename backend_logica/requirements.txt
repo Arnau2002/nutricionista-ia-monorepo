@@ -2,5 +2,7 @@ fastapi
 uvicorn[standard]
 requests
 pandas
-qdrant-client       # Para conectar con la DB vectorial
+qdrant-client==1.9.1    # Para conectar con la DB vectorial
 sentence-transformers # Para convertir texto a números (vectores)
+pydantic
+python-dotenv

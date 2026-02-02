@@ -55,15 +55,14 @@ services:
 
 
 
+
   # --- 3. El Servicio de Backend (Lógica de la App y IA) ---
-  # Usa el código de tu carpeta 'backend_logica'
   backend-logica:
     build:
       context: ./backend_logica
     container_name: backend-mvp
     ports:
-      # Expone el puerto de tu API (ej. 8000) a tu máquina local
-      - "8001:8000" 
+      - "8001:8000"
     environment:
       DB_HOST: db-tiendas
       DB_NAME: precios_comparados
@@ -72,8 +71,10 @@ services:
       QDRANT_HOST: vector-db
     depends_on:
       - db-tiendas
-
-    
+    # --- AÑADE ESTO ---
+    volumes:
+      - ./backend_logica:/app  # Conecta tu carpeta local con la del contenedor
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload  # '--reload' reinicia el servidor al detectar cambios
 
 
 
