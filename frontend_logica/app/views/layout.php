@@ -11,13 +11,14 @@
       <a class="brand" href="/?r=home"><?= htmlspecialchars($appName) ?></a>
       <nav class="main-nav">
         <a href="/?r=home">Inicio</a>
-        <?php  if (!isset($_SESSION['username'])){?>
+        
+        <?php if (!isset($_SESSION['username'])): ?>
           <a href="/?r=login">Login</a>
           <a href="/?r=register">Registro</a>
-        <?php } else { ?>
+        <?php else: ?>
+          <a href="/?r=dashboard">Dashboard</a>
           <a href="/?r=logout">Logout</a>
-        <?php } ?>
-        <a href="/?r=dashboard">Dashboard</a>
+        <?php endif; ?>
       </nav>
     </div>
   </header>

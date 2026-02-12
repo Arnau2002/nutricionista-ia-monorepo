@@ -7,9 +7,6 @@
     if (session_status() !== PHP_SESSION_ACTIVE) 
         session_start();
 
-
-
-    $route = $_GET['r'] ?? 'home';
     $route = $_GET['r'] ?? 'home';
 
     switch ($route) {
@@ -48,7 +45,7 @@
             (new AuthController())->showLogin();
         break;
 
-        // Guardar preferencias (gustos/intolerancias) antes de buscar precios
+        // Guardar preferencias
         case 'preferences.save':
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 (new AuthController())->savePreferences();
@@ -58,14 +55,15 @@
             }
         break;
 
-        // Dashboard simple (puedes luego crear una vista propia)
+        
         case 'dashboard':
             if (!isset($_SESSION['username'])) {
                 (new AuthController())->showLogin();
             } else {
-                render('home', ['title' => 'Inicio']);
+                render('dashboard', ['title' => 'Mi Historial']);
             }
         break;
+        // ---------------------------------------
 
         default:
             if (!isset($_SESSION['username'])){
@@ -73,21 +71,42 @@
             } else {
                 render('home', ['title' => 'Inicio']);      
             }
-}
+    }
+
+    // --- FUNCIONES DEL SISTEMA ---
 
     function render(string $view, array $data = []): void
     {
         $base = __DIR__ . '/app';
         $layout = $base . '/Views/layout.php';
-        $appName = (require __DIR__ . '/config/config.php')['app_name'];
+        $configPath = __DIR__ . '/config/config.php';
+
+        // Manejo de errores si falta configuración
+        $appName = 'Nutricionista IA';
+        if (file_exists($configPath)) {
+            $config = require $configPath;
+            $appName = $config['app_name'] ?? 'Nutricionista IA';
+        }
 
         // Recuperar flash de sesión si existe
         $flash = $_SESSION['flash'] ?? null;
         unset($_SESSION['flash']);
 
         extract($data);
-        // $appName y $flash estarán disponibles en el layout
-        include $layout;
+        
+        // Importante: El layout debe saber qué vista cargar.
+        // Normalmente el layout.php tiene un "include" dentro.
+        if (file_exists($layout)) {
+            include $layout;
+        } else {
+            // Fallback por si no hay layout (útil para depurar)
+            $viewPath = $base . "/Views/$view.php";
+            if (file_exists($viewPath)) {
+                include $viewPath;
+            } else {
+                echo "Error: Vista '$view' no encontrada.";
+            }
+        }
     }
 
     function autoload(): void

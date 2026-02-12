@@ -43,7 +43,12 @@ $view = 'home';
       
       <div id="winner-banner" class="winner-box" style="background: #d4edda; color: #155724; padding: 20px; border-radius: 5px; text-align: center; margin-bottom: 20px; border: 1px solid #c3e6cb;">
           <h2 id="winner-title" style="margin:0;">🏆 Mejor opción: ...</h2>
-          <p id="winner-savings" style="margin:5px 0 0 0; font-size: 1.2em;">Ahorro estimado: 0.00€</p>
+          <p id="winner-savings" style="margin:5px 0 15px 0; font-size: 1.2em;">Ahorro estimado: 0.00€</p>
+          
+          <button id="btnSave" onclick="guardarCesta()" style="background: white; color: #333; border: 1px solid #ccc; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            💾 Guardar en mi Historial
+          </button>
+          <div id="save-msg" style="margin-top: 10px; font-size: 0.9em; display: none;"></div>
       </div>
 
       <div class="row" style="display: flex; gap: 20px; flex-wrap: wrap;">
@@ -66,6 +71,9 @@ $view = 'home';
   </div>
 
   <script>
+    // Variable global para recordar los datos de la IA
+    let ultimosDatosIA = null;
+
     async function compararPrecios() {
         const input = document.getElementById('listaInput').value;
         const btn = document.getElementById('btnComparar');
@@ -73,11 +81,12 @@ $view = 'home';
         const results = document.getElementById('results-section');
         const errorDiv = document.getElementById('error-msg');
 
-        // 1. Limpiar estado visual
+        // Limpiar
         errorDiv.style.display = 'none';
         results.style.display = 'none';
+        document.getElementById('save-msg').style.display = 'none'; // Limpiar mensaje de guardado
         
-        // 2. Procesar entrada (separar por líneas y limpiar espacios)
+        // Procesar
         const ingredientes = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
         if (ingredientes.length === 0) {
@@ -85,31 +94,27 @@ $view = 'home';
             return;
         }
 
-        // 3. Activar animación de carga
+        // Carga
         btn.disabled = true;
         btn.innerText = "Analizando...";
         loading.style.display = 'block';
 
         try {
-            // 4. PETICIÓN AL BACKEND PYTHON (Puerto 8001)
+            // PETICIÓN AL BACKEND PYTHON (Puerto 8001)
             const response = await fetch('http://localhost:8001/comparar-lista-compra', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                // IMPORTANTE: La clave debe ser 'ingredientes' (español)
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ingredientes: ingredientes }) 
             });
 
             if (!response.ok) {
-                // Si el servidor devuelve error (422, 500, etc.)
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.detail || "Error conectando con el servidor (Puerto 8001)");
             }
 
             const data = await response.json();
             
-            // 5. Mostrar resultados si todo fue bien
+            // Mostrar
             mostrarResultados(data);
 
         } catch (err) {
@@ -117,7 +122,6 @@ $view = 'home';
             errorDiv.innerText = "⚠️ Error: " + err.message + ". Comprueba que el backend (Docker) está encendido.";
             errorDiv.style.display = 'block';
         } finally {
-            // 6. Restaurar botón
             btn.disabled = false;
             btn.innerText = "🔍 Analizar Ofertas con IA";
             loading.style.display = 'none';
@@ -125,41 +129,82 @@ $view = 'home';
     }
 
     function mostrarResultados(data) {
+        // 1. GUARDAMOS LOS DATOS EN LA VARIABLE GLOBAL PARA PODER GUARDARLOS LUEGO
+        ultimosDatosIA = data;
+
         const results = document.getElementById('results-section');
         results.style.display = 'block';
-
-        // Scroll suave hacia los resultados
         results.scrollIntoView({ behavior: 'smooth' });
 
-        // A. Banner del Ganador
+        // Resetear botón de guardar
+        const btnSave = document.getElementById('btnSave');
+        btnSave.disabled = false;
+        btnSave.innerText = "💾 Guardar en mi Historial";
+
+        // A. Ganador
         const winnerTitle = document.getElementById('winner-title');
         const winnerBox = document.getElementById('winner-banner');
         
         winnerTitle.innerText = "🏆 Mejor opción: " + data.mejor_supermercado;
         document.getElementById('winner-savings').innerText = "Ahorro estimado: " + data.ahorro_total + " €";
 
-        // Cambio de color según quién gane
+        // Colores
         if (data.mejor_supermercado === 'Mercadona') {
-            winnerBox.style.background = "#d4edda"; // Verde
+            winnerBox.style.background = "#d4edda"; 
             winnerBox.style.color = "#155724";
         } else if (data.mejor_supermercado === 'Dia') {
-            winnerBox.style.background = "#fadbd8"; // Rojo suave
+            winnerBox.style.background = "#fadbd8"; 
             winnerBox.style.color = "#721c24";
         } else {
-            winnerBox.style.background = "#fff3cd"; // Amarillo (Empate)
+            winnerBox.style.background = "#fff3cd"; 
             winnerBox.style.color = "#856404";
         }
 
-        // B. Renderizar Columnas
+        // B. Columnas
         renderCesta(data.cesta_mercadona, 'total-mercadona', 'list-mercadona', 'missing-mercadona');
         renderCesta(data.cesta_dia, 'total-dia', 'list-dia', 'missing-dia');
     }
 
+    // --- NUEVA FUNCIÓN PARA GUARDAR EN MYSQL ---
+    async function guardarCesta() {
+        if (!ultimosDatosIA) return;
+
+        const btn = document.getElementById('btnSave');
+        const msg = document.getElementById('save-msg');
+        
+        btn.disabled = true;
+        btn.innerText = "Guardando...";
+
+        try {
+            // Llamamos a nuestro script PHP intermedio
+            const response = await fetch('/save_basket.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(ultimosDatosIA)
+            });
+
+            const res = await response.json();
+
+            if (response.ok) {
+                btn.innerText = "✅ ¡Guardado!";
+                msg.style.color = "green";
+                msg.innerText = "Cesta guardada correctamente en tu Historial.";
+                msg.style.display = 'block';
+            } else {
+                throw new Error(res.error || "Error desconocido");
+            }
+        } catch (e) {
+            btn.innerText = "❌ Error";
+            btn.disabled = false;
+            msg.style.color = "red";
+            msg.innerText = "Error: " + e.message;
+            msg.style.display = 'block';
+        }
+    }
+
     function renderCesta(cesta, idTotal, idList, idMissing) {
-        // Total
         document.getElementById(idTotal).innerText = cesta.total + " €";
         
-        // Lista de productos encontrados
         const listaHtml = cesta.productos_encontrados.map(prod => `
             <div style="border-bottom:1px solid #eee; padding: 8px 0;">
                 <div style="font-weight:bold; font-size:0.95em;">${prod.nombre}</div>
@@ -170,10 +215,8 @@ $view = 'home';
             </div>
         `).join('');
         
-        const container = document.getElementById(idList);
-        container.innerHTML = listaHtml || "<p style='color:#777; font-style:italic;'>Sin productos</p>";
+        document.getElementById(idList).innerHTML = listaHtml || "<p style='color:#777; font-style:italic;'>Sin productos</p>";
 
-        // Productos NO encontrados
         if (cesta.productos_no_encontrados.length > 0) {
             document.getElementById(idMissing).innerHTML = 
                 "<div style='margin-top:10px; padding-top:10px; border-top:2px dashed #ecc;'>" +

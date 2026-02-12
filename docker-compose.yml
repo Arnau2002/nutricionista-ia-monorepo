@@ -81,19 +81,17 @@ services:
 
 
 
-  # --- 4. El Servicio de Frontend ---
-  # Usa el código de tu carpeta 'frontend_logica'
+# --- 4. El Servicio de Frontend ---
   frontend-logica:
     build:
       context: ./frontend_logica
     container_name: frontend-mvp
     ports:
-      # Expone el puerto de tu app de frontend (ej. 3000 para React/Vue)
       - "3000:80"
+    volumes:                            
+      - ./frontend_logica:/var/www/html   
     depends_on:
-      # El frontend depende de que el backend esté listo
       - backend-logica
-
 
 
 
