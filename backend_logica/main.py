@@ -1,6 +1,7 @@
 import os
 import unicodedata
 import statistics
+import re # <-- NUEVO: Para limpiar paréntesis de los ingredientes
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -8,9 +9,12 @@ from typing import List, Optional
 from qdrant_client import QdrantClient
 from sentence_transformers import SentenceTransformer
 
+# NUEVO: Importamos a nuestro Chef IA
+from chef_service import generar_lista_desde_menu
+
 app = FastAPI(title="Nutricionista IA")
 
-#  CORS 
+# CORS 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,7 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-#  INICIO SERVICIOS 
+# INICIO SERVICIOS 
 QDRANT_HOST = os.getenv('QDRANT_HOST', 'vector-db')
 QDRANT_PORT = 6333
 client = None
@@ -33,12 +37,16 @@ try:
 except Exception as e:
     print(f"❌ Error crítico: {e}")
 
-#  MODELOS 
+# MODELOS 
 class ItemBusqueda(BaseModel):
     ingrediente: str
 
 class ListaCompraRequest(BaseModel):
     ingredientes: List[str]
+
+# NUEVO: Modelo para pedirle menús al Chef
+class MenuRequest(BaseModel):
+    prompt: str
 
 class ComparativaFinal(BaseModel):
     mejor_supermercado: str
@@ -46,7 +54,7 @@ class ComparativaFinal(BaseModel):
     cesta_mercadona: dict
     cesta_dia: dict
 
-#  1. CONTEXTO SEMÁNTICO (Lo que la IA debe buscar) 
+# 1. CONTEXTO SEMÁNTICO (Lo que la IA debe buscar) 
 CONTEXTO_SEMANTICO = {
     "huevo": "huevos frescos gallina docena",
     "huevos": "huevos frescos gallina docena",
@@ -60,36 +68,26 @@ CONTEXTO_SEMANTICO = {
     "pan": "barra pan fresco hogaza"
 }
 
-#  2. FILTRO DE "IMPUREZAS" 
-# Si un producto tiene estas palabras, se considera de peor calidad/procesado
-# y recibe una penalización matemática fuerte.
-
+# 2. FILTRO DE "IMPUREZAS" 
 PALABRAS_PROCESADAS = [
-    # Procesados cárnicos/pescado
     "cocido", "cocida", "adobado", "adobada", "marinado",
     "empanada", "empanadilla", "rebozado", "frito", 
     "pate", "paté", "foie", "sobrasada", "crema", "untable",
     "fiambre", "mortadela", "salchicha", "salchichas", "burguer", "hamburguesa",
     "nuggets", "croquetas", "albóndigas", "albondigas", "varitas",
-    
-    # Platos listos
     "listo", "preparado", "microondas", "calentar", 
     "pizza", "lasaña", "canelones", "tortilla", "ensaladilla", "gazpacho",
-    
-    # Repostería/Saborizados
     "sabor", "aroma", "galleta", "pasta", "bollo", "yogur", "postre",
     "ajo", "trufa", "picante", "especias", "hierbas", "limón", "naranja",
-    
-    # Nicho / Calidad Inferior
     "codorniz", "orujo", "mix", "mezcla", "mini" 
 ]
 
-#  3. LISTA NEGRA GLOBAL 
+# 3. LISTA NEGRA GLOBAL 
 PALABRAS_PROHIBIDAS_GLOBAL = [
     "kinder", "juguete", "sorpresa", "corporal", "hidratante", "champú", "mascota"
 ]
 
-#  HERRAMIENTAS 
+# HERRAMIENTAS 
 def normalizar(texto: str) -> str:
     if not texto: return ""
     texto = unicodedata.normalize('NFD', texto).encode('ascii', 'ignore').decode("utf-8")
@@ -105,31 +103,24 @@ def tokenizar(texto: str) -> list:
             tokens.append(raiz)
     return tokens
 
-#  SCORING V13 
-
+# SCORING V13 
 def calcular_score_v13(producto: dict, query_original: str) -> float:
     nombre_prod = normalizar(producto['nombre'])
     
-    # A. KILL SWITCH
     for prohibida in PALABRAS_PROHIBIDAS_GLOBAL:
         if prohibida in nombre_prod: return 0.0
 
-    # B. DETECTOR DE PROCESADOS (El "Filtro de Pureza")
     is_processed = False
     for proc in PALABRAS_PROCESADAS:
-        # Solo penalizamos si la palabra procesada NO estaba en la búsqueda del usuario
-        # (Ej: Si busco "Salchichas", no penalizo "Salchichas". Si busco "Pollo", sí penalizo "Salchichas").
         if proc in nombre_prod and proc not in query_original:
             is_processed = True
             break 
     
-    # C. ANÁLISIS DE TOKENS
     query_tokens = tokenizar(query_original)
     prod_tokens = tokenizar(nombre_prod)
     
     if not query_tokens or not prod_tokens: return 0.0
 
-    # Intersección
     q_set = set(query_tokens)
     p_set = set(prod_tokens)
     coincidencias = len(q_set.intersection(p_set))
@@ -138,25 +129,20 @@ def calcular_score_v13(producto: dict, query_original: str) -> float:
          if len(q_set) < 3: return 0.0
          elif coincidencias < len(q_set) - 1: return 0.0
 
-    # D. POSICIÓN (Vital para distinguir nombre de adjetivo)
     pos_score = 0.0
     try:
         idx = prod_tokens.index(query_tokens[0])
-        if idx == 0: pos_score = 1.0       # "Pollo..."
-        elif idx == 1: pos_score = 0.9     # "Pechuga Pollo..."
-        elif idx == 2: pos_score = 0.4     # "Paté de Pollo..." (Baja relevancia)
+        if idx == 0: pos_score = 1.0       
+        elif idx == 1: pos_score = 0.9     
+        elif idx == 2: pos_score = 0.4     
         else: pos_score = 0.1
     except ValueError:
         pos_score = 0.0
 
-    # E. CÁLCULO FINAL
     score_vector = producto['score_original']
-    
-    # Penalización fuerte (-0.4) para matar al Paté y al Orujo
     penalty_processed = 0.4 if is_processed else 0.0
 
     final_score = (score_vector * 0.35) + (pos_score * 0.65) - penalty_processed
-    
     return final_score
 
 def buscar_producto_inteligente(ingrediente: str):
@@ -193,13 +179,11 @@ def buscar_producto_inteligente(ingrediente: str):
         
         item['final_score'] = calcular_score_v13(item, ingrediente_clean)
         
-        # Umbral de calidad
         if item['final_score'] > 0.40:
             candidates.append(item)
 
     if not candidates: return None
 
-    # Anti-Packs
     precios = [c['precio'] for c in candidates]
     if precios:
         mediana_precio = statistics.median(precios)
@@ -216,7 +200,6 @@ def buscar_producto_inteligente(ingrediente: str):
     best_m = min(m_opts[:5], key=lambda x: x['precio']) if m_opts else None
     best_d = min(d_opts[:5], key=lambda x: x['precio']) if d_opts else None
 
-    # Comparación
     ganador = None
     perdedor = []
     
@@ -232,42 +215,39 @@ def buscar_producto_inteligente(ingrediente: str):
 
     return {"mejor": ganador, "otras": perdedor}
 
-#  ENDPOINTS 
-@app.post("/comparar-lista-compra", response_model=ComparativaFinal)
-async def comparar_lista_compra(lista: ListaCompraRequest):
+# NUEVO: Lógica centralizada para no repetir código
+def procesar_lista_compra(lista_ingredientes: List[str]) -> dict:
     cesta_m = {"total": 0.0, "items": [], "missing": []}
     cesta_d = {"total": 0.0, "items": [], "missing": []}
     
     comp_m = 0.0
     comp_d = 0.0
 
-    for ing in lista.ingredientes:
+    for ing in lista_ingredientes:
         res = buscar_producto_inteligente(ing)
         
         item_m = None
         item_d = None
 
         if res:
-            if res['mejor'] and res['mejor']['tienda'] == 'Mercadona': item_m = res['mejor']
-            elif res['otras']: item_m = next((x for x in res['otras'] if x['tienda'] == 'Mercadona'), None)
+            if res.get('mejor') and res['mejor']['tienda'] == 'Mercadona': item_m = res['mejor']
+            elif res.get('otras'): item_m = next((x for x in res['otras'] if x['tienda'] == 'Mercadona'), None)
 
-            if res['mejor'] and res['mejor']['tienda'] == 'Dia': item_d = res['mejor']
-            elif res['otras']: item_d = next((x for x in res['otras'] if x['tienda'] == 'Dia'), None)
+            if res.get('mejor') and res['mejor']['tienda'] == 'Dia': item_d = res['mejor']
+            elif res.get('otras'): item_d = next((x for x in res['otras'] if x['tienda'] == 'Dia'), None)
 
-        precio_m = 0.0
-        precio_d = 0.0
+        precio_m = item_m["precio"] if item_m else 0.0
+        precio_d = item_d["precio"] if item_d else 0.0
 
         if item_m:
             cesta_m["items"].append(item_m)
-            cesta_m["total"] += item_m["precio"]
-            precio_m = item_m["precio"]
+            cesta_m["total"] += precio_m
         else:
             cesta_m["missing"].append(ing)
 
         if item_d:
             cesta_d["items"].append(item_d)
-            cesta_d["total"] += item_d["precio"]
-            precio_d = item_d["precio"]
+            cesta_d["total"] += precio_d
         else:
             cesta_d["missing"].append(ing)
 
@@ -309,4 +289,40 @@ async def comparar_lista_compra(lista: ListaCompraRequest):
             "productos_encontrados": cesta_d["items"],
             "productos_no_encontrados": cesta_d["missing"]
         }
+    }
+
+# ENDPOINTS 
+
+# 1. El endpoint original (Para listas manuales)
+@app.post("/comparar-lista-compra", response_model=ComparativaFinal)
+async def comparar_lista_compra(lista: ListaCompraRequest):
+    return procesar_lista_compra(lista.ingredientes)
+
+# 2. EL NUEVO ENDPOINT (El Cerebro Culinario)
+@app.post("/planificar-menu")
+async def planificar_menu(req: MenuRequest):
+    # 1. Le pedimos el menú a Gemini
+    resultado_chef = generar_lista_desde_menu(req.prompt)
+    
+    if "error" in resultado_chef:
+        return {"error": resultado_chef["error"]}
+    
+    # 2. Limpiamos los ingredientes (Quitamos cantidades como "(200g)")
+    ingredientes_crudos = resultado_chef.get("ingredientes_clave", [])
+    ingredientes_limpios = []
+    
+    for ing in ingredientes_crudos:
+        # Esto quita cualquier cosa que esté dentro de paréntesis
+        ing_limpio = re.sub(r'\(.*?\)', '', ing).strip()
+        ingredientes_limpios.append(ing_limpio)
+        
+    # 3. Pasamos la lista limpia a tu buscador V13
+    comparativa = procesar_lista_compra(ingredientes_limpios)
+    
+    # 4. Devolvemos el paquete completo: Menú + Precios
+    return {
+        "menu": resultado_chef.get("menu_pensado", []),
+        "ingredientes_originales": ingredientes_crudos,
+        "ingredientes_limpios": ingredientes_limpios,
+        "comparativa": comparativa
     }

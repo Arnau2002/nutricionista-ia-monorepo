@@ -16,7 +16,7 @@
           <a href="/?r=login">Login</a>
           <a href="/?r=register">Registro</a>
         <?php else: ?>
-          <a href="/?r=dashboard">Dashboard</a>
+          <a href="/?r=planificador">👨‍🍳 Planificador</a> <a href="/?r=dashboard">Dashboard</a>
           <a href="/?r=logout">Logout</a>
         <?php endif; ?>
       </nav>

@@ -6,3 +6,4 @@ qdrant-client==1.9.1    # Para conectar con la DB vectorial
 sentence-transformers # Para convertir texto a números (vectores)
 pydantic
 python-dotenv
+google-generativeai

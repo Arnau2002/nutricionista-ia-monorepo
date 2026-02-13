@@ -40,43 +40,37 @@ try {
     }
     .btn-ver:hover { background-color: #0769b5; }
 
-    /* ZONA DE DETALLES (Escondida por defecto) */
+    /* ZONA DE DETALLES */
     #detalle-cesta {
         margin-top: 30px; display: none; 
         border-top: 3px solid #0984e3; padding-top: 20px;
         animation: fadeIn 0.5s;
     }
 
-    /* TARJETAS DE SUPERMERCADO (Copiadas del Home) */
+    /*  ESTILOS DEL MENÚ GUARDADO */
+    .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 25px; margin-top: 15px; }
+    .dia-card { background: #fdfbf7; border-left: 4px solid #f39c12; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .dia-titulo { color: #d68910; font-weight: bold; margin-bottom: 5px; font-size: 1.1em; }
+    .plato-nombre { font-weight: bold; color: #000; margin-bottom: 8px; font-size: 1.15em; }
+    .plato-desc { color: #333; font-size: 0.95em; line-height: 1.4; }
+
+    /* TARJETAS DE SUPERMERCADO */
     .comparison-row { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
+    .super-card { flex: 1; min-width: 300px; padding: 20px; border-radius: 8px; border: 1px solid #ccc; color: #000; background: white;}
     
-    .super-card {
-        flex: 1; min-width: 300px; padding: 15px; border-radius: 8px; 
-        border: 1px solid #ddd; position: relative;
-    }
-
-    .card-mercadona { background: #f4fbf7; border-top: 4px solid #007a3e; }
-    .card-mercadona h3 { color: #007a3e; border-bottom: 2px solid #007a3e; }
-
-    .card-dia { background: #fff5f6; border-top: 4px solid #d50032; }
-    .card-dia h3 { color: #d50032; border-bottom: 2px solid #d50032; }
-
-    .price-tag { font-size: 1.4em; margin: 10px 0; font-weight: bold; }
-
-    .prod-item { border-bottom: 1px solid #eee; padding: 8px 0; }
-    .prod-name { font-weight: bold; font-size: 0.95em; }
-    .prod-meta { color: #555; font-size: 0.85em; display: flex; justify-content: space-between; }
+    .card-mercadona { background: #f4fbf7; border-top: 5px solid #009432; }
+    .card-mercadona h3 { color: #009432; border-bottom: 2px solid #009432; padding-bottom: 5px; margin-top: 0;}
     
-    .missing-box { 
-        margin-top: 10px; padding-top: 10px; border-top: 2px dashed #ecc; 
-        color: #c0392b; font-size: 0.9em; 
-    }
+    .card-dia { background: #fff5f6; border-top: 5px solid #EA2027; }
+    .card-dia h3 { color: #EA2027; border-bottom: 2px solid #EA2027; padding-bottom: 5px; margin-top: 0;}
 
-    .winner-banner {
-        background: #d4edda; color: #155724; padding: 15px; 
-        border-radius: 5px; text-align: center; margin-bottom: 10px; 
-        border: 1px solid #c3e6cb; font-size: 1.1em;
-    }
+    .price-tag { font-size: 1.6em; margin: 15px 0; font-weight: bold; color: #111; }
+    .prod-item { border-bottom: 1px solid #ddd; padding: 10px 0; font-size: 0.95em; color: #000; }
+    .prod-name { font-weight: 700; color: #000; margin-bottom: 3px; display: block; }
+    .prod-meta { color: #444; font-size: 0.9em; font-weight: 500; }
+    
+    .missing-box { margin-top: 15px; padding: 15px; background: #fdedec; border: 1px solid #e6b0aa; border-radius: 6px; color: #c0392b; font-size: 0.9em; }
+    .winner-banner { background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; text-align: center; margin-bottom: 20px; border: 1px solid #c3e6cb; font-size: 1.2em; font-weight: bold; }
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
@@ -88,7 +82,7 @@ try {
         
         <?php if (empty($cestas)): ?>
             <p style="text-align: center; color: #555; padding: 20px;">
-                Aún no tienes historial. <a href="/?r=home">¡Haz tu primera búsqueda!</a>
+                Aún no tienes historial. <a href="/?r=planificador">¡Planifica tu primer menú!</a>
             </p>
         <?php else: ?>
 
@@ -106,7 +100,6 @@ try {
                         <?php 
                             $winner = htmlspecialchars($cesta['winner_store']);
                             $colorGanador = ($winner == 'Mercadona') ? '#009432' : '#EA2027'; 
-                            // Escapamos el JSON para poder pasarlo a JS sin romper nada
                             $jsonSafe = htmlspecialchars($cesta['json_data'], ENT_QUOTES, 'UTF-8');
                         ?>
                         <tr>
@@ -127,8 +120,14 @@ try {
     </div>
 
     <div id="detalle-cesta">
-        <h3 style="color: #333;">📝 Detalles de la Comparativa</h3>
+        <h3 style="color: #333; margin-bottom: 20px;">📝 Detalles de la Búsqueda Guardada</h3>
         
+        <div id="dashboard-menu-container" style="display: none;">
+            <h4 style="color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px;">🍽️ Menú Planificado</h4>
+            <div id="dashboard-menu-grid" class="menu-grid"></div>
+        </div>
+
+        <h4 style="color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 20px;">🛒 Lista de la Compra</h4>
         <div id="detail-banner" class="winner-banner"></div>
 
         <div class="comparison-row">
@@ -151,7 +150,6 @@ try {
 
 <script>
 function cargarDetalle(btn) {
-    // Recuperamos el JSON del atributo data-json
     const jsonStr = btn.getAttribute('data-json');
     if (!jsonStr) return;
 
@@ -168,58 +166,60 @@ function renderizarVista(data) {
     const visor = document.getElementById('detalle-cesta');
     visor.style.display = 'block';
 
-    // 1. Banner Ganador
-    const banner = document.getElementById('detail-banner');
-    banner.innerHTML = `🏆 Ganador: <strong>${data.mejor_supermercado}</strong> | Ahorro: <strong>${data.ahorro_total} €</strong>`;
+    // --- 1. RENDERIZAR MENÚ (Si existe) ---
+    const menuContainer = document.getElementById('dashboard-menu-container');
+    const menuGrid = document.getElementById('dashboard-menu-grid');
     
-    // Cambiar color del banner según ganador
-    if (data.mejor_supermercado === 'Dia') {
-        banner.style.background = "#fadbd8";
-        banner.style.color = "#721c24";
-        banner.style.borderColor = "#f5c6cb";
+    // Comprobamos si el JSON tiene "menu_planificado" y no está vacío
+    if (data.menu_planificado && data.menu_planificado.length > 0) {
+        menuContainer.style.display = 'block';
+        menuGrid.innerHTML = data.menu_planificado.map(dia => `
+            <div class="dia-card">
+                <div class="dia-titulo">${dia.dia}</div>
+                <div class="plato-nombre">${dia.plato}</div>
+                <div class="plato-desc">${dia.descripcion}</div>
+            </div>
+        `).join('');
     } else {
-        banner.style.background = "#d4edda";
-        banner.style.color = "#155724";
-        banner.style.borderColor = "#c3e6cb";
+        // Si no tiene menú (ej: listas manuales), lo ocultamos
+        menuContainer.style.display = 'none';
+        menuGrid.innerHTML = '';
     }
 
-    // 2. Renderizar Columnas
+    // --- 2. BANNER GANADOR ---
+    const banner = document.getElementById('detail-banner');
+    banner.innerHTML = `🏆 Ganador: <strong>${data.mejor_supermercado}</strong> | Ahorras: <strong>${data.ahorro_total} €</strong>`;
+    
+    if (data.mejor_supermercado === 'Dia') {
+        banner.style.background = "#fadbd8"; banner.style.color = "#721c24"; banner.style.borderColor = "#f5c6cb";
+    } else {
+        banner.style.background = "#d4edda"; banner.style.color = "#155724"; banner.style.borderColor = "#c3e6cb";
+    }
+
+    // --- 3. RENDERIZAR COLUMNAS ---
     renderColumna(data.cesta_mercadona, 'm-price', 'm-list', 'm-missing');
     renderColumna(data.cesta_dia, 'd-price', 'd-list', 'd-missing');
 
-    // 3. Scroll suave
     visor.scrollIntoView({behavior: "smooth"});
 }
 
 function renderColumna(cesta, idPrice, idList, idMissing) {
-    // Precio Total
-    document.getElementById(idPrice).innerText = cesta.total + " €";
+    document.getElementById(idPrice).innerText = cesta.total.toFixed(2) + " €";
     
-    // Lista de Productos
-    const listContainer = document.getElementById(idList);
-    listContainer.innerHTML = cesta.productos_encontrados.map(p => `
+    document.getElementById(idList).innerHTML = cesta.productos_encontrados.map(p => `
         <div class="prod-item">
-            <div class="prod-name">${p.nombre}</div>
-            <div class="prod-meta">
-                <span>${p.precio}€ / ${p.unidad}</span>
-                ${p.final_score < 0.6 ? '<span title="Coincidencia baja">⚠️</span>' : ''}
-            </div>
+            <span class="prod-name">${p.nombre}</span>
+            <span class="prod-meta">${p.precio}€ / ${p.unidad}</span>
         </div>
     `).join('');
 
-    if (!cesta.productos_encontrados.length) {
-        listContainer.innerHTML = "<p style='color:#999; font-style:italic;'>Sin productos</p>";
-    }
-
-    // Faltantes
     const missingContainer = document.getElementById(idMissing);
     if (cesta.productos_no_encontrados && cesta.productos_no_encontrados.length > 0) {
         missingContainer.innerHTML = `
             <div class="missing-box">
-                <strong>❌ No disponible:</strong> 
-                ${cesta.productos_no_encontrados.join(", ")}
-            </div>
-        `;
+                <strong style="color: #900C3F;">❌ No encontrados:</strong><br>
+                <span style="color: #000; font-weight: 500;">${cesta.productos_no_encontrados.join(", ")}</span>
+            </div>`;
     } else {
         missingContainer.innerHTML = "";
     }

@@ -55,6 +55,13 @@
             }
         break;
 
+        case 'planificador':
+            if (!isset($_SESSION['username'])) {
+                (new AuthController())->showLogin();
+            } else {
+                render('planificador', ['title' => 'Planificador IA']);
+            }
+        break;
         
         case 'dashboard':
             if (!isset($_SESSION['username'])) {
