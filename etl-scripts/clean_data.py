@@ -80,8 +80,10 @@ def gestionar_transformacion(ruta_mercadona, ruta_dia):
     # Limpieza de precios
     df_final['precio_referencia'] = df_final['precio_referencia'].astype(str).str.replace(r'[^0-9.,]', '', regex=True).str.replace(',', '.').astype(float)
 
-    # Seleccionar columnas finales
-    cols = ['id_producto', 'nombre', 'nombre_estandar', 'precio_actual', 'precio_referencia', 'categoria', 'tienda', 'unidad_medida']
+    # Seleccionar columnas finales (AÑADIMOS 'imagen')
+    cols = ['id_producto', 'nombre', 'nombre_estandar', 'imagen', 'precio_actual', 'precio_referencia', 'categoria', 'tienda', 'unidad_medida']
+    
+    # ... código siguiente ...
     df_final = df_final[[c for c in cols if c in df_final.columns]]
 
     # Guardar

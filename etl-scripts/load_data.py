@@ -6,14 +6,17 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from sentence_transformers import SentenceTransformer
 
-# --- CONFIGURACIÓN ---
+# --- CONFIGURACIÓN CORREGIDA PARA WINDOWS ---
 DB_USER = os.getenv('DB_USER', 'root')
 DB_PASS = os.getenv('DB_PASS', 'password_segura') 
-DB_HOST = os.getenv('DB_HOST', 'db-tiendas')
+
+# Usamos 'localhost' para que funcione desde tu terminal
+DB_HOST = 'localhost' 
 DB_NAME = os.getenv('DB_NAME', 'precios_comparados')
 DB_URL = f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
 
-QDRANT_HOST = os.getenv('QDRANT_HOST', 'vector-db')
+# Usamos 'localhost' para Qdrant también
+QDRANT_HOST = 'localhost'
 QDRANT_PORT = 6333
 COLLECTION_NAME = "productos_supermercado"
 
@@ -137,6 +140,9 @@ def cargar_datos():
                 "product_id": prod_id,
                 "nombre": row.get('nombre', nombre_estandar),
                 "nombre_estandar": nombre_estandar,
+                
+                "imagen": row.get('imagen', ''), # Guardamos la URL
+                
                 "categoria": row.get('categoria', ''),
                 "tienda": tienda_nombre,
                 "precio": precio,

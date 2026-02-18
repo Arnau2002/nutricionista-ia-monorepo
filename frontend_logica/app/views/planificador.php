@@ -163,15 +163,30 @@ function renderizarMenu(data) {
 }
 
 function renderCol(cesta, idPrice, idList, idMissing) {
+    // 1. Poner el precio total
     document.getElementById(idPrice).innerText = cesta.total.toFixed(2) + ' €';
     
-    document.getElementById(idList).innerHTML = cesta.productos_encontrados.map(p => `
-        <div class="prod-item">
-            <span class="prod-name">${p.nombre}</span>
-            <span class="prod-meta">${p.precio}€ / ${p.unidad}</span>
-        </div>
-    `).join('');
+    // 2. Generar la lista de productos con FOTOS
+    document.getElementById(idList).innerHTML = cesta.productos_encontrados.map(p => {
+        // Truco: Si no hay imagen, ponemos un icono genérico
+        const imgUrl = (p.imagen && p.imagen !== '') 
+            ? p.imagen 
+            : 'https://cdn-icons-png.flaticon.com/512/1147/1147931.png'; 
 
+        return `
+        <div class="prod-item" style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee;">
+            <img src="${imgUrl}" alt="${p.nombre}" 
+                 style="width: 50px; height: 50px; object-fit: contain; border-radius: 4px; border: 1px solid #ddd; background: white;">
+            
+            <div style="flex: 1;">
+                <span class="prod-name" style="display: block; font-weight: bold; font-size: 0.95em; color: #000;">${p.nombre}</span>
+                <span class="prod-meta" style="color: #666; font-size: 0.85em;">${p.precio}€ / ${p.unidad}</span>
+            </div>
+        </div>
+        `;
+    }).join('');
+
+    // 3. Mostrar productos no encontrados (si los hay)
     const missingDiv = document.getElementById(idMissing);
     if (cesta.productos_no_encontrados && cesta.productos_no_encontrados.length > 0) {
         missingDiv.innerHTML = `
