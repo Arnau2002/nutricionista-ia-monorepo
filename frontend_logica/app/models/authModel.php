@@ -10,20 +10,29 @@ class AuthModel
 
     public function __construct()
     {
-        $db = require __DIR__ . '/../../storage/db.php';
+        // CONFIGURACIÓN DIRECTA PARA DOCKER
+        // Usamos las mismas credenciales que en dashboard.php y save_basket.php
+        $host = 'nutricionista-mysql'; 
+        $db   = 'precios_comparados';
+        $user = 'root';
+        $pass = 'password_segura';
+        $charset = 'utf8mb4';
 
-        $dsn = sprintf(
-            'mysql:host=%s;dbname=%s;charset=%s',
-            $db['host'],
-            $db['db'],
-            $db['charset']
-        );
+        $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 
-        $this->pdo = new PDO($dsn, $db['user'], $db['pass'], [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
+        try {
+            $this->pdo = new PDO($dsn, $user, $pass, [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES   => false,
+            ]);
+        } catch (PDOException $e) {
+            // Si falla la conexión, paramos todo y avisamos
+            die("Error crítico de conexión a Base de Datos (AuthModel): " . $e->getMessage());
+        }
     }
+
+    
 
     public function findByEmail(string $email): ?array
     {
