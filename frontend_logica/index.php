@@ -23,6 +23,34 @@
             (new AuthController())->showRegister();
         break;
 
+        // ==========================================
+        // RECUPERACIÓN DE CONTRASEÑA
+        // ==========================================
+        case 'forgot_password':
+            (new AuthController())->showForgotPassword();
+        break;
+
+        case 'process_forgot_password':
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                (new AuthController())->processForgotPassword();
+            } else {
+                header('Location: /?r=forgot_password');
+            }
+        break;
+
+        case 'reset_password':
+            (new AuthController())->showResetPassword();
+        break;
+
+        case 'process_reset_password':
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                (new AuthController())->processResetPassword();
+            } else {
+                header('Location: /?r=login');
+            }
+        break;
+        // ==========================================
+
         // Acciones de autenticación (POST)
         case 'auth.login':
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {

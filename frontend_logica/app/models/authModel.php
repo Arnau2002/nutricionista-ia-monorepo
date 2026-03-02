@@ -32,8 +32,6 @@ class AuthModel
         }
     }
 
-    
-
     public function findByEmail(string $email): ?array
     {
         try {
@@ -51,9 +49,9 @@ class AuthModel
      * Crea un usuario.
      *
      * @return array [ 'ok' => bool, 'code' => string|null ]
-     *         code puede ser:
-     *           - 'duplicate_email'
-     *           - 'db_error'
+     * code puede ser:
+     * - 'duplicate_email'
+     * - 'db_error'
      */
     public function createUser(string $name, string $email, string $password): array
     {
@@ -126,4 +124,35 @@ class AuthModel
 
         @file_put_contents($logDir . '/db.log', $msg, FILE_APPEND);
     }
-}
+
+    // ==========================================
+    // RECUPERACIÓN DE CONTRASEÑA
+    // ==========================================
+
+    // 1. Guardar el token secreto generado y darle 1 hora de vida
+    public function saveResetToken(string $email, string $token): bool
+    {
+        $expiry = date('Y-m-d H:i:s', time() + 3600); // Caduca en 1 hora
+        $stmt = $this->pdo->prepare("UPDATE users SET reset_token = ?, reset_expires_at = ? WHERE email = ?");
+        return $stmt->execute([$token, $expiry, $email]);
+    }
+
+    // 2. Comprobar si el token es válido y no ha caducado
+    public function findUserByResetToken(string $token): ?array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM users WHERE reset_token = ? AND reset_expires_at > NOW()");
+        $stmt->execute([$token]);
+        $user = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $user ?: null;
+    }
+
+    // 3. Guardar la nueva contraseña y borrar el token
+    public function updatePasswordWithToken(string $token, string $newPassword): bool
+    {
+        $hash = password_hash($newPassword, PASSWORD_DEFAULT);
+        // Al actualizar, vaciamos el token para que no se pueda volver a usar
+        $stmt = $this->pdo->prepare("UPDATE users SET password_hash = ?, reset_token = NULL, reset_expires_at = NULL WHERE reset_token = ?");
+        return $stmt->execute([$hash, $token]);
+    }
+
+} // FIN DE LA CLASE AUTHMODEL

@@ -115,7 +115,85 @@ class AuthController
         exit;
     }
 
+// ==========================================
+    // CONTROLADORES DE RECUPERACIÓN
+    // ==========================================
 
+    public function showForgotPassword(): void
+    {
+        $this->view('forgot_password', ['title' => 'Recuperar Contraseña']);
+    }
+
+    public function processForgotPassword(): void
+    {
+        $email = trim($_POST['email'] ?? '');
+        
+        if ($email === '') {
+            $this->setFlash('Por favor, introduce tu correo electrónico.');
+            header('Location: /?r=forgot_password');
+            exit;
+        }
+
+        // Buscamos si el usuario existe (usamos un método que ya deberías tener en tu modelo, o lo buscamos a mano)
+        $user = $this->model->findByEmail($email);
+
+        if ($user) {
+            // Generar un token aleatorio, único e indescifrable
+            $token = bin2hex(random_bytes(32)); 
+            $this->model->saveResetToken($email, $token);
+            
+            // ⚠️ TRUCO PROFESIONAL (Simulación de Email)
+            // Como no tenemos servidor de correos configurado, te muestro el enlace por pantalla para que puedas probarlo.
+            $link = "http://localhost:3000/?r=reset_password&token=" . $token;
+            $this->setFlash("📧 <b>[SIMULACIÓN DE EMAIL]</b> Haz clic en este enlace para recuperar tu clave: <br><a href='$link' style='color:#0984e3; text-decoration:underline;'>$link</a>");
+        } else {
+            // Seguridad: Si el correo NO existe, mostramos el mismo mensaje para no dar pistas a los hackers
+            $this->setFlash('Si el correo existe en nuestra base de datos, te hemos enviado un enlace.');
+        }
+
+        header('Location: /?r=login');
+        exit;
+    }
+
+    public function showResetPassword(): void
+    {
+        $token = $_GET['token'] ?? '';
+        
+        if ($token === '' || !$this->model->findUserByResetToken($token)) {
+            $this->setFlash('El enlace de recuperación es inválido o ha caducado (dura 1 hora).');
+            header('Location: /?r=login');
+            exit;
+        }
+
+        $this->view('reset_password', ['title' => 'Crear Nueva Contraseña', 'token' => $token]);
+    }
+
+    public function processResetPassword(): void
+    {
+        $token = $_POST['token'] ?? '';
+        $password = $_POST['password'] ?? '';
+        $password2 = $_POST['password2'] ?? '';
+
+        if ($token === '' || !$this->model->findUserByResetToken($token)) {
+            $this->setFlash('El enlace es inválido o ha caducado.');
+            header('Location: /?r=login');
+            exit;
+        }
+
+        if (strlen($password) < 6 || $password !== $password2) {
+            $this->setFlash('Las contraseñas no coinciden o son muy cortas (mínimo 6 caracteres).');
+            header("Location: /?r=reset_password&token=$token");
+            exit;
+        }
+
+        // Actualizamos y borramos el token
+        $this->model->updatePasswordWithToken($token, $password);
+        
+        $this->setFlash('✅ Contraseña actualizada correctamente. Ya puedes iniciar sesión.');
+        header('Location: /?r=login');
+        exit;
+    }
+    
     public function logout(): void
     {
         session_destroy();

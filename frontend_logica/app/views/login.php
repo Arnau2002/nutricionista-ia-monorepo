@@ -11,6 +11,9 @@ $view = 'login'; ?>
             <label for="password">Contraseña</label>
             <input type="password" name="password" id="password" required />
         </div>
+        <p style="text-align: center; margin-top: 10px;">
+            <a href="/?r=forgot_password" style="color: #666; font-size: 0.9em; text-decoration: underline;">¿Has olvidado tu contraseña?</a>
+        </p>
         <div>
             <button class="btn" type="submit">Entrar</button>
         </div>
