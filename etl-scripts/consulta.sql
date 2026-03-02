@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   full_name VARCHAR(255) NULL,
   role ENUM('admin','user') NOT NULL DEFAULT 'user',
+  reset_token VARCHAR(64) NULL,   --- Token para recuperar contraseña
+  reset_expires_at DATETIME NULL,    
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   last_login_at TIMESTAMP NULL
 );
@@ -78,6 +80,7 @@ CREATE TABLE IF NOT EXISTS product (
   category_id INT NULL,
   uom_code VARCHAR(20) NOT NULL,
   pack_qty DECIMAL(18,6) NOT NULL DEFAULT 1,
+  image_url VARCHAR(500) NULL,        
   is_private_label BOOLEAN NOT NULL DEFAULT 0,
   FOREIGN KEY (category_id) REFERENCES category(category_id),
   FOREIGN KEY (uom_code) REFERENCES uom(uom_code),
@@ -106,6 +109,18 @@ CREATE TABLE IF NOT EXISTS entity_embedding (
   embedding LONGBLOB NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_entity_embedding (entity_type, entity_id, model)
+);
+
+-- 9. SAVED_BASKETS
+CREATE TABLE IF NOT EXISTS saved_baskets (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  winner_supermarket VARCHAR(50) NOT NULL,
+  total_price DECIMAL(10,2) NOT NULL,
+  menu_data JSON NULL,       
+  basket_data JSON NOT NULL, 
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
 -- VISTA: Precio Enriquecido (Calcula precio por unidad base)
