@@ -18,16 +18,17 @@ $view = 'home';
 <?php else: ?>
   <p>Pega tu lista de la compra y la IA encontrará los mejores precios en Mercadona y Dia.</p>
 
-  <div class="card" style="padding: 20px; background: white;">
+  <div class="card" style="padding: 20px; background: white; border: 1px solid #ddd; margin-bottom: 20px;">
       <div class="row">
         <div class="full-width">
           <label for="listaInput"><strong>Tu Lista de la Compra:</strong></label>
           <textarea id="listaInput" rows="6" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px;" 
             placeholder="Ejemplo:&#10;1 litro de leche entera&#10;Pechuga de pollo&#10;Arroz redondo&#10;Aceite de oliva"></textarea>
         </div>
+        <div id="simple-error-msg" style="display:none; color: white; background: #e74c3c; padding: 10px; margin-top: 20px; border-radius: 4px;"></div>
         <div class="full-width" style="margin-top:15px;">
           <button class="btn" id="btnComparar" onclick="compararPrecios()" style="width:100%; font-size:1.1em;">
-            🔍 Analizar Ofertas con IA
+            🔍 Comparar Precios en Mercadona y Dia
           </button>
         </div>
       </div>
@@ -37,7 +38,7 @@ $view = 'home';
       <p>🧠 La IA está pensando... comparando precios...</p>
   </div>
 
-  <div id="error-msg" style="display:none; color: white; background: #e74c3c; padding: 10px; margin-top: 20px; border-radius: 4px;"></div>
+  <!-- Error div removed (moved inside card) -->
 
   <div id="results-section" style="display:none; margin-top: 30px;">
       
@@ -79,14 +80,11 @@ $view = 'home';
         const btn = document.getElementById('btnComparar');
         const loading = document.getElementById('loading');
         const results = document.getElementById('results-section');
-        const errorDiv = document.getElementById('error-msg');
+        const errorDiv = document.getElementById('simple-error-msg');
 
-        // Limpiar
         errorDiv.style.display = 'none';
         results.style.display = 'none';
-        document.getElementById('save-msg').style.display = 'none'; // Limpiar mensaje de guardado
         
-        // Procesar
         const ingredientes = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
         if (ingredientes.length === 0) {
@@ -94,17 +92,17 @@ $view = 'home';
             return;
         }
 
-        // Carga
         btn.disabled = true;
         btn.innerText = "Analizando...";
         loading.style.display = 'block';
 
         try {
-            // PETICIÓN AL BACKEND PYTHON (Puerto 8001)
             const response = await fetch('http://localhost:8001/comparar-lista-compra', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ingredientes: ingredientes }) 
+                body: JSON.stringify({ 
+                    ingredientes: ingredientes
+                }) 
             });
 
             if (!response.ok) {
@@ -141,12 +139,23 @@ $view = 'home';
         btnSave.disabled = false;
         btnSave.innerText = "💾 Guardar en mi Historial";
 
-        // A. Ganador
         const winnerTitle = document.getElementById('winner-title');
         const winnerBox = document.getElementById('winner-banner');
-        
-        winnerTitle.innerText = "🏆 Mejor opción: " + data.mejor_supermercado;
-        document.getElementById('winner-savings').innerText = "Ahorro estimado: " + data.ahorro_total + " €";
+
+        let warningHtml = "";
+        if (!data.comparativa_completa) {
+            warningHtml = `
+            <div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 0.9em; border: 1px solid #ffeeba;">
+                ⚠️ <strong>Aviso:</strong> La comparativa es parcial. Faltan algunos productos en una o ambas tiendas.
+            </div>`;
+        }
+
+        winnerTitle.innerHTML = "🏆 Supermercado recomendado: " + data.mejor_supermercado;
+        document.getElementById('winner-savings').innerHTML = `
+            ${warningHtml}
+            <strong>Ahorras ${data.ahorro_total}€</strong> en tu ticket de hoy.<br>
+            <span style="font-size: 0.8em; opacity: 0.9;">Basado en los productos encontrados para tu lista.</span>
+        `;
 
         // Colores
         if (data.mejor_supermercado === 'Mercadona') {
@@ -203,17 +212,26 @@ $view = 'home';
     }
 
     function renderCesta(cesta, idTotal, idList, idMissing) {
-        document.getElementById(idTotal).innerText = cesta.total + " €";
-        
-        const listaHtml = cesta.productos_encontrados.map(prod => `
-            <div style="border-bottom:1px solid #eee; padding: 8px 0;">
-                <div style="font-weight:bold; font-size:0.95em;">${prod.nombre}</div>
-                <div style="color:#555; font-size:0.85em; display:flex; justify-content:space-between;">
-                    <span>${prod.precio}€ / ${prod.unidad}</span>
-                    ${prod.final_score < 0.6 ? '<span title="Coincidencia baja" style="cursor:help;">⚠️</span>' : ''}
-                </div>
+        document.getElementById(idTotal).innerHTML = `
+            <div style="font-size: 1.5em; color: #111;">Ticket: <strong>${cesta.total.toFixed(2)} €</strong></div>
+            <div style="font-size: 0.75em; color: #0984e3; font-weight: bold; margin-top: 2px;">
+                🚀 Eficiencia: ${cesta.total_normalizado.toFixed(2)}€/kg-L
             </div>
-        `).join('');
+        `;
+        
+        const listaHtml = cesta.productos_encontrados.map(prod => {
+            const esCaro = prod.es_formato_grande;
+            return `
+            <div style="border-bottom:1px solid #eee; padding: 12px 0;">
+                <div style="font-weight:bold; font-size:1em; color: #000;">${prod.nombre}</div>
+                <div style="color:#555; font-size:0.9em; display:flex; justify-content:space-between; margin-top:5px;">
+                    <span style="${esCaro ? 'color: #d35400; font-weight: bold;' : ''}">Precio: ${prod.precio.toFixed(2)}€</span>
+                    <span style="color: #7f8c8d;">${prod.precio_ref > 0 ? prod.precio_ref.toFixed(2) + '€/' + prod.unidad : ''}</span>
+                </div>
+                ${esCaro ? '<div style="font-size: 0.75em; color: #d35400; font-weight: bold; margin-top: 3px;">⚠️ Formato Grande / Ahorro (Ticket inflado)</div>' : ''}
+            </div>
+            `;
+        }).join('');
         
         document.getElementById(idList).innerHTML = listaHtml || "<p style='color:#777; font-style:italic;'>Sin productos</p>";
 

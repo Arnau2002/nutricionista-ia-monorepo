@@ -3,7 +3,8 @@ namespace App\Controllers;
 
 use App\Models\AuthModel;
 
-class AuthController 
+class AuthController
+
 {
     private AuthModel $model;
 
@@ -31,7 +32,7 @@ class AuthController
 
     public function login(): void
     {
-        $email    = trim($_POST['email'] ?? '');
+        $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
 
         if ($email === '' || $password === '') {
@@ -49,8 +50,8 @@ class AuthController
             exit;
         }
 
-        $_SESSION['user_id']   = $user['user_id'];
-        $_SESSION['username']  = $user['full_name'] ?: $user['email'];
+        $_SESSION['user_id'] = $user['user_id'];
+        $_SESSION['username'] = $user['full_name'] ?: $user['email'];
 
         $this->setFlash('Bienvenido, ' . $_SESSION['username'] . ' 👋');
         header('Location: /?r=home');
@@ -59,9 +60,9 @@ class AuthController
 
     public function register(): void
     {
-        $name      = trim($_POST['name'] ?? '');
-        $email     = trim($_POST['email'] ?? '');
-        $password  = $_POST['password'] ?? '';
+        $name = trim($_POST['name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
         $password2 = $_POST['password2'] ?? '';
 
         // Validaciones
@@ -95,7 +96,8 @@ class AuthController
         if (!$result['ok']) {
             if ($result['code'] === 'duplicate_email') {
                 $this->setFlash('Este correo ya está registrado.');
-            } else {
+            }
+            else {
                 $this->setFlash('Error al registrar el usuario.');
             }
             header('Location: /?r=register');
@@ -106,7 +108,7 @@ class AuthController
         $user = $this->model->findByEmail($email);
 
         if ($user) {
-            $_SESSION['user_id']  = $user['user_id'];
+            $_SESSION['user_id'] = $user['user_id'];
             $_SESSION['username'] = $user['full_name'] ?: $user['email'];
         }
 
@@ -114,8 +116,7 @@ class AuthController
         header('Location: /?r=home');
         exit;
     }
-
-// ==========================================
+    // ==========================================
     // CONTROLADORES DE RECUPERACIÓN
     // ==========================================
 
@@ -127,7 +128,7 @@ class AuthController
     public function processForgotPassword(): void
     {
         $email = trim($_POST['email'] ?? '');
-        
+
         if ($email === '') {
             $this->setFlash('Por favor, introduce tu correo electrónico.');
             header('Location: /?r=forgot_password');
@@ -139,14 +140,15 @@ class AuthController
 
         if ($user) {
             // Generar un token aleatorio, único e indescifrable
-            $token = bin2hex(random_bytes(32)); 
+            $token = bin2hex(random_bytes(32));
             $this->model->saveResetToken($email, $token);
-            
+
             // ⚠️ TRUCO PROFESIONAL (Simulación de Email)
             // Como no tenemos servidor de correos configurado, te muestro el enlace por pantalla para que puedas probarlo.
             $link = "http://localhost:3000/?r=reset_password&token=" . $token;
             $this->setFlash("📧 <b>[SIMULACIÓN DE EMAIL]</b> Haz clic en este enlace para recuperar tu clave: <br><a href='$link' style='color:#0984e3; text-decoration:underline;'>$link</a>");
-        } else {
+        }
+        else {
             // Seguridad: Si el correo NO existe, mostramos el mismo mensaje para no dar pistas a los hackers
             $this->setFlash('Si el correo existe en nuestra base de datos, te hemos enviado un enlace.');
         }
@@ -158,7 +160,7 @@ class AuthController
     public function showResetPassword(): void
     {
         $token = $_GET['token'] ?? '';
-        
+
         if ($token === '' || !$this->model->findUserByResetToken($token)) {
             $this->setFlash('El enlace de recuperación es inválido o ha caducado (dura 1 hora).');
             header('Location: /?r=login');
@@ -188,12 +190,12 @@ class AuthController
 
         // Actualizamos y borramos el token
         $this->model->updatePasswordWithToken($token, $password);
-        
+
         $this->setFlash('✅ Contraseña actualizada correctamente. Ya puedes iniciar sesión.');
         header('Location: /?r=login');
         exit;
     }
-    
+
     public function logout(): void
     {
         session_destroy();
@@ -201,12 +203,41 @@ class AuthController
         exit;
     }
 
+    public function savePreferences(): void
+    {
+        // Solo para usuarios logueados
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(401);
+            echo 'No autorizado';
+            exit;
+        }
+
+        $userId = (int)$_SESSION['user_id'];
+        $likes = trim($_POST['likes'] ?? '');
+        $intolerances = trim($_POST['intolerances'] ?? '');
+
+        $ok = $this->model->saveUserPreferences($userId, $likes, $intolerances);
+
+        if ($ok) {
+            $this->setFlash('✅ Preferencias guardadas correctamente.');
+        }
+        else {
+            $this->setFlash('❌ Error al guardar las preferencias.');
+        }
+
+        // Redirigir de vuelta o a una página específica
+        $referer = $_SERVER['HTTP_REFERER'] ?? '/?r=home';
+        header("Location: $referer");
+        exit;
+    }
+
     protected function view(string $view, array $data = []): void
     {
         extract($data);
         $appName = (require __DIR__ . '/../../config/config.php')['app_name'];
-        $flash   = $_SESSION['flash'] ?? null;
-        if (isset($_SESSION['flash'])) unset($_SESSION['flash']);
+        $flash = $_SESSION['flash'] ?? null;
+        if (isset($_SESSION['flash']))
+            unset($_SESSION['flash']);
 
         include __DIR__ . '/../Views/layout.php';
     }

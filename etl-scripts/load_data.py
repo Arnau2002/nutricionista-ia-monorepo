@@ -22,7 +22,13 @@ COLLECTION_NAME = "productos_supermercado"
 
 def inicializar_tablas(connection):
     archivo_sql = "consulta.sql"
-    if not os.path.exists(archivo_sql): return
+    if not os.path.exists(archivo_sql):
+        archivo_sql = "etl-scripts/consulta.sql"
+    
+    if not os.path.exists(archivo_sql):
+        print(f"⚠️ No se encuentra {archivo_sql}, saltando inicialización SQL.")
+        return
+        
     with open(archivo_sql, 'r', encoding='utf-8') as f:
         comandos = f.read().split(';')
     for cmd in comandos:
@@ -75,9 +81,13 @@ def cargar_datos():
         vectors_config=models.VectorParams(size=384, distance=models.Distance.COSINE)
     )
 
-    try: df = pd.read_csv("export/productos_limpios_estandarizados.csv")
+    csv_path = "export/productos_limpios_estandarizados.csv"
+    if not os.path.exists(csv_path):
+        csv_path = "etl-scripts/export/productos_limpios_estandarizados.csv"
+        
+    try: df = pd.read_csv(csv_path)
     except: 
-        print("❌ Error: No encuentro el CSV.")
+        print(f"❌ Error: No encuentro el CSV en {csv_path}")
         return
 
     df = df.where(pd.notnull(df), None)
@@ -146,6 +156,7 @@ def cargar_datos():
                 "categoria": row.get('categoria', ''),
                 "tienda": tienda_nombre,
                 "precio": precio,
+                "precio_ref": float(row.get('precio_referencia', 0.0)) if row.get('precio_referencia') else 0.0,
                 "unidad": uom
             })
 

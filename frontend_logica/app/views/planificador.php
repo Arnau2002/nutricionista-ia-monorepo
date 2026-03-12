@@ -57,6 +57,35 @@
         <p style="color:#555; font-size: 1.1em;">Dime qué te apetece comer esta semana y la IA creará el menú y buscará los precios.</p>
     </div>
 
+    <!-- SECCIÓN DE PREFERENCIAS -->
+    <div style="background: #fdfefe; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 20px; max-width: 800px; margin-left: auto; margin-right: auto;">
+        <p style="margin-top:0; font-weight:bold; color: #2ecc71; text-align: center;">⚙️ Personalización del Menú</p>
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 150px;">
+                <label><strong>Dieta:</strong></label>
+                <select id="dietaSelect" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+                    <option value="Equilibrada">🥗 Equilibrada</option>
+                    <option value="Vegana">🌱 Vegana</option>
+                    <option value="Vegetariana">🥚 Vegetariana</option>
+                    <option value="Keto">🥩 Keto / Low Carb</option>
+                    <option value="Sin Gluten">🌾 Sin Gluten</option>
+                </select>
+            </div>
+            <div style="flex: 1; min-width: 150px;">
+                <label><strong>Objetivo:</strong></label>
+                <select id="objetivoSelect" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+                    <option value="Ahorro">💰 Máximo Ahorro</option>
+                    <option value="Ganar músculo">💪 Ganar Músculo</option>
+                    <option value="Perder peso">🏃 Perder Peso</option>
+                </select>
+            </div>
+            <div style="flex: 2; min-width: 250px;">
+                <label><strong>Alergias (separadas por comas):</strong></label>
+                <input type="text" id="alergiasInput" placeholder="Ej: Nueces, Marisco, Lactosa" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+            </div>
+        </div>
+    </div>
+
     <div class="chef-input-group">
         <input type="text" id="prompt-chef" class="chef-input" placeholder="Ej: Quiero cenar vegetariano 3 días..." onkeypress="manejarEnter(event)">
         <button class="btn-chef" onclick="pedirMenu()">Planificar</button>
@@ -110,6 +139,10 @@ async function pedirMenu() {
     const prompt = document.getElementById('prompt-chef').value.trim();
     if (!prompt) return alert('Por favor, escribe lo que te apetece comer.');
 
+    const dieta = document.getElementById('dietaSelect').value;
+    const objetivo = document.getElementById('objetivoSelect').value;
+    const alergias = document.getElementById('alergiasInput').value.split(',').map(a => a.trim()).filter(a => a.length > 0);
+
     document.getElementById('resultados').style.display = 'none';
     document.getElementById('loader').style.display = 'block';
     
@@ -121,7 +154,12 @@ async function pedirMenu() {
         const response = await fetch('http://localhost:8001/planificar-menu', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: prompt })
+            body: JSON.stringify({ 
+                prompt: prompt,
+                dieta: dieta,
+                alergias: alergias,
+                objetivo: objetivo
+            })
         });
 
         const data = await response.json();
@@ -153,7 +191,23 @@ function renderizarMenu(data) {
 
     const comp = data.comparativa;
     const banner = document.getElementById('winner-banner');
-    banner.innerHTML = `🏆 Mejor opción: ${comp.mejor_supermercado} | Ahorras: ${comp.ahorro_total} €`;
+    
+    let warningHtml = "";
+    if (!comp.comparativa_completa) {
+        warningHtml = `
+            <div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 0.9em; border: 1px solid #ffeeba; font-weight: normal;">
+                ⚠️ <strong>Nota:</strong> Algunos productos no se encontraron en ambos supermercados. El ahorro total podría no ser exacto.
+            </div>`;
+    }
+
+    banner.innerHTML = `
+        ${warningHtml}
+        <div style="font-size: 1.3em;">🏆 Supermercado recomendado: <strong>${comp.mejor_supermercado}</strong></div>
+        <div style="font-size: 0.9em; font-weight: normal; margin-top: 5px;">
+            Ahorras un total de <strong>${comp.ahorro_total}€</strong> en tu ticket de hoy.
+        </div>
+    `;
+    
     banner.style.background = (comp.mejor_supermercado === 'Dia') ? '#fadbd8' : '#d4edda';
     banner.style.color = (comp.mejor_supermercado === 'Dia') ? '#721c24' : '#155724';
     banner.style.borderColor = (comp.mejor_supermercado === 'Dia') ? '#f5c6cb' : '#c3e6cb';
@@ -163,8 +217,11 @@ function renderizarMenu(data) {
 }
 
 function renderCol(cesta, idPrice, idList, idMissing) {
-    // 1. Poner el precio total
-    document.getElementById(idPrice).innerText = cesta.total.toFixed(2) + ' €';
+    // 1. Poner el precio prioritario (Ticket)
+    document.getElementById(idPrice).innerHTML = `
+        <div style="font-size: 1.1em; color: #111;">Ticket hoy: <strong>${cesta.total.toFixed(2)} €</strong></div>
+        <div style="font-size: 0.7em; color: #0984e3; font-weight: bold; margin-top:2px;">🚀 Eficiencia: ${cesta.total_normalizado.toFixed(2)}€/kg-L</div>
+    `;
     
     // 2. Generar la lista de productos con FOTOS
     document.getElementById(idList).innerHTML = cesta.productos_encontrados.map(p => {
@@ -180,7 +237,11 @@ function renderCol(cesta, idPrice, idList, idMissing) {
             
             <div style="flex: 1;">
                 <span class="prod-name" style="display: block; font-weight: bold; font-size: 0.95em; color: #000;">${p.nombre}</span>
-                <span class="prod-meta" style="color: #666; font-size: 0.85em;">${p.precio}€ / ${p.unidad}</span>
+                <span class="prod-meta" style="color: #666; font-size: 0.85em;">
+                    <span style="${p.es_formato_grande ? 'color: #d35400; font-weight: bold;' : ''}">${p.precio.toFixed(2)}€</span> | 
+                    <span style="color: #0984e3; font-weight: bold;">${p.precio_ref > 0 ? p.precio_ref.toFixed(2) + '€/' + p.unidad : ''}</span>
+                </span>
+                ${p.es_formato_grande ? '<div style="font-size: 0.7em; color: #d35400; font-weight: bold; margin-top: 2px;">⚠️ Formato Ahorro/Grande</div>' : ''}
             </div>
         </div>
         `;

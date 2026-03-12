@@ -12,8 +12,8 @@ class AuthModel
     {
         // CONFIGURACIÓN DIRECTA PARA DOCKER
         // Usamos las mismas credenciales que en dashboard.php y save_basket.php
-        $host = 'nutricionista-mysql'; 
-        $db   = 'precios_comparados';
+        $host = 'nutricionista-mysql';
+        $db = 'precios_comparados';
         $user = 'root';
         $pass = 'password_segura';
         $charset = 'utf8mb4';
@@ -22,11 +22,12 @@ class AuthModel
 
         try {
             $this->pdo = new PDO($dsn, $user, $pass, [
-                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES   => false,
+                PDO::ATTR_EMULATE_PREPARES => false,
             ]);
-        } catch (PDOException $e) {
+        }
+        catch (PDOException $e) {
             // Si falla la conexión, paramos todo y avisamos
             die("Error crítico de conexión a Base de Datos (AuthModel): " . $e->getMessage());
         }
@@ -39,7 +40,8 @@ class AuthModel
             $stmt->execute([$email]);
             $user = $stmt->fetch();
             return $user ?: null;
-        } catch (PDOException $e) {
+        }
+        catch (PDOException $e) {
             $this->logPdoError('findByEmail', $e);
             return null;
         }
@@ -65,22 +67,23 @@ class AuthModel
             $stmt->execute([$name, $email, $hash]);
 
             return [
-                'ok'   => true,
+                'ok' => true,
                 'code' => null,
             ];
-        } catch (PDOException $e) {
+        }
+        catch (PDOException $e) {
             $this->logPdoError('createUser', $e);
 
             // 23000 = violación de constraint (UNIQUE, FK, etc.)
-            if ((int) $e->getCode() === 23000) {
+            if ((int)$e->getCode() === 23000) {
                 return [
-                    'ok'   => false,
+                    'ok' => false,
                     'code' => 'duplicate_email',
                 ];
             }
 
             return [
-                'ok'   => false,
+                'ok' => false,
                 'code' => 'db_error',
             ];
         }
@@ -89,7 +92,8 @@ class AuthModel
     public function verifyLogin(string $email, string $password): ?array
     {
         $user = $this->findByEmail($email);
-        if (!$user) return null;
+        if (!$user)
+            return null;
 
         if (!password_verify($password, $user['password_hash'])) {
             return null;
@@ -98,9 +102,10 @@ class AuthModel
         try {
             $stmt = $this->pdo->prepare('UPDATE users SET last_login_at = NOW() WHERE user_id = ?');
             $stmt->execute([$user['user_id']]);
-        } catch (PDOException $e) {
+        }
+        catch (PDOException $e) {
             $this->logPdoError('verifyLogin.updateLastLogin', $e);
-            // no rompemos el login si falla esto
+        // no rompemos el login si falla esto
         }
 
         return $user;
@@ -153,6 +158,29 @@ class AuthModel
         // Al actualizar, vaciamos el token para que no se pueda volver a usar
         $stmt = $this->pdo->prepare("UPDATE users SET password_hash = ?, reset_token = NULL, reset_expires_at = NULL WHERE reset_token = ?");
         return $stmt->execute([$hash, $token]);
+    }
+
+    /**
+     * Guarda o actualiza las preferencias del usuario.
+     */
+    public function saveUserPreferences(int $userId, string $likes, string $intolerances): bool
+    {
+        try {
+            // Usamos ON DUPLICATE KEY UPDATE porque hay un UNIQUE CONSTRAINT en user_id
+            $sql = "INSERT INTO user_preferences (user_id, likes, intolerances, updated_at) 
+                    VALUES (?, ?, ?, NOW())
+                    ON DUPLICATE KEY UPDATE 
+                        likes = VALUES(likes), 
+                        intolerances = VALUES(intolerances),
+                        updated_at = NOW()";
+
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute([$userId, $likes, $intolerances]);
+        }
+        catch (\PDOException $e) {
+            $this->logPdoError('saveUserPreferences', $e);
+            return false;
+        }
     }
 
 } // FIN DE LA CLASE AUTHMODEL

@@ -3,30 +3,41 @@ import json
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-# 1. Cargar la llave del archivo .env
+# Carga de configuración
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 
-# Configurar Gemini
-if not api_key:
-    print("⚠️ ALERTA: No se encontró GOOGLE_API_KEY en el archivo .env")
-else:
+if api_key:
     genai.configure(api_key=api_key)
 
-def generar_lista_desde_menu(instruccion_usuario: str):
+def generar_lista_desde_menu(
+    instruccion_usuario: str, 
+    dieta: str = "Equilibrada", 
+    alergias: list = [], 
+    objetivo: str = "Ahorro"
+):
     if not api_key:
         return {"error": "Falta configurar la API Key del Chef"}
 
-    # LISTA DE MODELOS A PROBAR (Del más moderno al más compatible)
-    # Si falla el primero, probará el segundo, etc.
+    # Modelos recomendados para evitar obsolescencia
     modelos_a_probar = [
-        'gemini-1.5-flash',       # El estándar gratuito actual (Rápido y bueno)
-        'gemini-1.5-flash-latest',# Alias alternativo
-        'gemini-pro',             # El clásico (Suele funcionar siempre)
-        'gemini-flash-latest'     # El alias genérico
+        'gemini-2.5-flash', 
+        'gemini-3.1-flash-lite-preview',
+        'gemini-3-flash-preview',
+        'gemini-2.5-pro',
+        'gemini-1.5-flash'
     ]
     
     ultimo_error = ""
+
+    # Preparar el contexto de restricciones
+    restricciones = ""
+    if dieta != "Equilibrada":
+        restricciones += f"- TIPO DE DIETA: {dieta}. NUNCA propongas platos que no la cumplan.\n"
+    if alergias:
+        restricciones += f"- ALERGIAS (PROHIBIDO): {', '.join(alergias)}. SI UN PLATO SUELE LLEVAR ESTO, SUSTITÚYELO O ELIMÍNALO.\n"
+    if objetivo != "Ahorro":
+        restricciones += f"- OBJETIVO NUTRICIONAL: {objetivo}. Prioriza ingredientes que ayuden a este fin.\n"
 
     for nombre_modelo in modelos_a_probar:
         try:
@@ -34,20 +45,30 @@ def generar_lista_desde_menu(instruccion_usuario: str):
             model = genai.GenerativeModel(nombre_modelo)
 
             prompt = f"""
-            Eres un Nutricionista y Chef experto. 
-            El usuario quiere: "{instruccion_usuario}".
+            Eres un Nutricionista y Chef especializado en AHORRO inteligente para jóvenes independizados.
             
-            Tu misión:
-            1. Generar un menú realista basado en esa petición.
-            2. Extraer la lista de compra con ingredientes ESENCIALES y genéricos (ej: "Arroz", no "Arroz marca X").
-            3. Cantidades aproximadas para una persona.
+            CONTEXTO DEL USUARIO:
+            - Petición: "{instruccion_usuario}"
+            {restricciones}
             
-            IMPORTANTE: Responde ÚNICAMENTE con un JSON válido con esta estructura, sin texto extra ni markdown (no uses ```json):
+            TU MISIÓN:
+            1. Generar un menú realista que sea BARATO y cumpla con las restricciones anteriores.
+            2. Calcular la cantidad necesaria (en gramos o unidades estándar) para UNA persona.
+            
+            REGLAS DE VOCABULARIO (SÓLO NOMBRES BÁSICOS):
+            - Usa el nombre base del producto (una o dos palabras máximo).
+            - NUNCA uses adjetivos, variedades, marcas ni tipos de corte/cocción.
+            - EJEMPLOS: "Pollo", "Lentejas", "Arroz".
+            - PROHIBIDOS: "Pollo campero", "Lentejas pardinas", "Arroz bomba".
+            
+            RESPONDE ÚNICAMENTE CON ESTE FORMATO JSON:
             {{
                 "menu_pensado": [
-                    {{ "dia": "Día 1", "plato": "Nombre del plato", "descripcion": "Breve descripción" }}
+                    {{ "dia": "Lunes - Cena", "plato": "Nombre del plato", "descripcion": "Breve descripción con enfoque en ahorro" }}
                 ],
-                "ingredientes_clave": ["Ingrediente 1", "Ingrediente 2", "Ingrediente 3"]
+                "ingredientes_clave": [
+                    {{ "nombre": "Nombre Simple", "cantidad": 500 }}
+                ]
             }}
             """
 
@@ -61,6 +82,7 @@ def generar_lista_desde_menu(instruccion_usuario: str):
                 texto_limpio = texto_limpio[texto_limpio.find("{"):texto_limpio.rfind("}")+1]
 
             datos = json.loads(texto_limpio)
+            print(f"📦 Ingredientes generados: {[i['nombre'] for i in datos.get('ingredientes_clave', [])]}")
             
             print(f"✅ ¡Éxito con el modelo {nombre_modelo}!")
             return datos
@@ -75,7 +97,7 @@ def generar_lista_desde_menu(instruccion_usuario: str):
     print("❌ Todos los modelos fallaron.")
     return {"error": f"El Chef no está disponible. Último error: {ultimo_error}"}
 
-# --- PRUEBA RÁPIDA ---
+# Test de integración rápida
 if __name__ == "__main__":
     print("👨‍🍳 El Chef está encendiendo los fogones...")
     resultado = generar_lista_desde_menu("Quiero cenar ligero 3 días, nada de carne")

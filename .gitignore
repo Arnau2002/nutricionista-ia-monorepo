@@ -1,4 +1,6 @@
 export/*.csv
-export/*.xlsx
+node_modules/
+temp_docx/
+tests/
 __pycache__/
 .env
