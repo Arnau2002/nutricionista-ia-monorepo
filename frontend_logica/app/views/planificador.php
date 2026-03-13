@@ -110,19 +110,25 @@
         <h3 style="color: #2c3e50; margin-bottom: 15px; margin-top: 30px;">🛒 Tu Lista de la Compra</h3>
         <div id="winner-banner" class="winner-banner"></div>
 
-        <div class="comparison-row">
-            <div class="super-card card-mercadona">
-                <h3>Mercadona</h3>
-                <div id="m-price" class="price-tag">0.00 €</div>
-                <div id="m-list"></div>
-                <div id="m-missing"></div>
+        <div id="comparison-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; margin-top: 20px;">
+            <!-- Mercadona Header -->
+            <div style="background: #f4fbf7; padding: 20px; border-radius: 12px 12px 0 0; border: 1px solid #ddd; border-bottom: none; border-top: 5px solid #009432;">
+                <h3 style="color: #009432; margin: 0; border-bottom: 2px solid #009432; padding-bottom: 8px;">Mercadona</h3>
+                <div id="m-price" class="price-tag" style="margin-top: 10px; font-size: 1.5em;">0.00 €</div>
             </div>
-            <div class="super-card card-dia">
-                <h3>Dia</h3>
-                <div id="d-price" class="price-tag">0.00 €</div>
-                <div id="d-list"></div>
-                <div id="d-missing"></div>
+            <!-- Dia Header -->
+            <div style="background: #fff5f6; padding: 20px; border-radius: 12px 12px 0 0; border: 1px solid #ddd; border-bottom: none; border-top: 5px solid #EA2027;">
+                <h3 style="color: #EA2027; margin: 0; border-bottom: 2px solid #EA2027; padding-bottom: 8px;">Dia</h3>
+                <div id="d-price" class="price-tag" style="margin-top: 10px; font-size: 1.5em;">0.00 €</div>
             </div>
+
+            <!-- Filas de productos -->
+            <div id="list-container" style="grid-column: 1 / span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px;">
+            </div>
+
+            <!-- Footers (No encontrados) -->
+            <div id="m-missing" style="background: #f4fbf7; padding: 15px; border-radius: 0 0 12px 12px; border: 1px solid #ddd; border-top: none; color: #c0392b; font-size: 0.9em;"></div>
+            <div id="d-missing" style="background: #fff5f6; padding: 15px; border-radius: 0 0 12px 12px; border: 1px solid #ddd; border-top: none; color: #c0392b; font-size: 0.9em;"></div>
         </div>
     </div>
 </div>
@@ -131,6 +137,23 @@
 // Variable global para guardar los datos de la IA temporalmente
 let currentMenuData = null;
 
+// PERSISTENCIA: Cargar al iniciar
+window.addEventListener('load', () => {
+    const savedMenu = localStorage.getItem('ultimoMenuPlanificado');
+    const savedPrompt = localStorage.getItem('ultimoPromptChef');
+    
+    if (savedPrompt) document.getElementById('prompt-chef').value = savedPrompt;
+    
+    if (savedMenu) {
+        try {
+            const data = JSON.parse(savedMenu);
+            currentMenuData = data;
+            renderizarMenu(data);
+            document.getElementById('resultados').style.display = 'block';
+        } catch(e) {}
+    }
+});
+
 function manejarEnter(e) {
     if (e.key === 'Enter') pedirMenu();
 }
@@ -138,6 +161,8 @@ function manejarEnter(e) {
 async function pedirMenu() {
     const prompt = document.getElementById('prompt-chef').value.trim();
     if (!prompt) return alert('Por favor, escribe lo que te apetece comer.');
+
+    localStorage.setItem('ultimoPromptChef', prompt);
 
     const dieta = document.getElementById('dietaSelect').value;
     const objetivo = document.getElementById('objetivoSelect').value;
@@ -164,6 +189,9 @@ async function pedirMenu() {
 
         const data = await response.json();
         if (data.error) throw new Error(data.error);
+
+        // Guardar para persistencia
+        localStorage.setItem('ultimoMenuPlanificado', JSON.stringify(data));
 
         // Guardamos los datos en la variable global para poder enviarlos luego
         currentMenuData = data;
@@ -200,11 +228,16 @@ function renderizarMenu(data) {
             </div>`;
     }
 
+    let savingsText = `Ahorrarás <strong>${comp.ahorro_total}€</strong> comprando en ${comp.mejor_supermercado}.`;
+    if (comp.mensaje_ahorro) {
+        savingsText += `<div style="background: rgba(255,255,255,0.5); padding: 8px; border-radius: 6px; margin-top: 10px; font-size: 0.85em; color: #111; line-height: 1.3;">💡 <strong>Info:</strong> ${comp.mensaje_ahorro}</div>`;
+    }
+
     banner.innerHTML = `
         ${warningHtml}
         <div style="font-size: 1.3em;">🏆 Supermercado recomendado: <strong>${comp.mejor_supermercado}</strong></div>
         <div style="font-size: 0.9em; font-weight: normal; margin-top: 5px;">
-            Ahorras un total de <strong>${comp.ahorro_total}€</strong> en tu ticket de hoy.
+            ${savingsText}
         </div>
     `;
     
@@ -212,52 +245,78 @@ function renderizarMenu(data) {
     banner.style.color = (comp.mejor_supermercado === 'Dia') ? '#721c24' : '#155724';
     banner.style.borderColor = (comp.mejor_supermercado === 'Dia') ? '#f5c6cb' : '#c3e6cb';
 
-    renderCol(comp.cesta_mercadona, 'm-price', 'm-list', 'm-missing');
-    renderCol(comp.cesta_dia, 'd-price', 'd-list', 'd-missing');
+    // Poner Totales
+    document.getElementById('m-price').innerHTML = `
+        <div style="font-weight: bold;">${comp.cesta_mercadona.total.toFixed(2)} €</div>
+        <div style="font-size: 0.5em; color: #0984e3;">🚀 Eficiencia: ${comp.cesta_mercadona.total_normalizado.toFixed(2)}€/kg-L</div>
+    `;
+    document.getElementById('d-price').innerHTML = `
+        <div style="font-weight: bold;">${comp.cesta_dia.total.toFixed(2)} €</div>
+        <div style="font-size: 0.5em; color: #0984e3;">🚀 Eficiencia: ${comp.cesta_dia.total_normalizado.toFixed(2)}€/kg-L</div>
+    `;
+
+    // Renderizar Filas Alineadas
+    const listContainer = document.getElementById('list-container');
+    listContainer.innerHTML = "";
+
+    if (comp.filas && comp.filas.length > 0) {
+        comp.filas.forEach(fila => {
+            // Mercadona Cell
+            const divM = document.createElement('div');
+            divM.style.background = "#f4fbf7";
+            divM.style.padding = "0 20px 12px 20px";
+            divM.style.borderLeft = "1px solid #ddd";
+            divM.style.borderRight = "1px solid #ddd";
+            divM.innerHTML = crearHtmlElemento(fila.mercadona, 'Mercadona');
+            
+            // Dia Cell
+            const divD = document.createElement('div');
+            divD.style.background = "#fff5f6";
+            divD.style.padding = "0 20px 12px 20px";
+            divD.style.borderLeft = "1px solid #ddd";
+            divD.style.borderRight = "1px solid #ddd";
+            divD.innerHTML = crearHtmlElemento(fila.dia, 'Dia');
+
+            listContainer.appendChild(divM);
+            listContainer.appendChild(divD);
+        });
+    }
+
+    // Missing Footers
+    const mMiss = comp.cesta_mercadona.productos_no_encontrados;
+    const dMiss = comp.cesta_dia.productos_no_encontrados;
+    document.getElementById('m-missing').innerHTML = mMiss.length ? `❌ No disponible: ${mMiss.join(", ")}` : "";
+    document.getElementById('d-missing').innerHTML = dMiss.length ? `❌ No disponible: ${dMiss.join(", ")}` : "";
 }
 
-function renderCol(cesta, idPrice, idList, idMissing) {
-    // 1. Poner el precio prioritario (Ticket)
-    document.getElementById(idPrice).innerHTML = `
-        <div style="font-size: 1.1em; color: #111;">Ticket hoy: <strong>${cesta.total.toFixed(2)} €</strong></div>
-        <div style="font-size: 0.7em; color: #0984e3; font-weight: bold; margin-top:2px;">🚀 Eficiencia: ${cesta.total_normalizado.toFixed(2)}€/kg-L</div>
-    `;
-    
-    // 2. Generar la lista de productos con FOTOS
-    document.getElementById(idList).innerHTML = cesta.productos_encontrados.map(p => {
-        // Truco: Si no hay imagen, ponemos un icono genérico
-        const imgUrl = (p.imagen && p.imagen !== '') 
-            ? p.imagen 
-            : 'https://cdn-icons-png.flaticon.com/512/1147/1147931.png'; 
-
+function crearHtmlElemento(p, tienda) {
+    if (!p) {
         return `
-        <div class="prod-item" style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee;">
-            <img src="${imgUrl}" alt="${p.nombre}" 
-                 style="width: 50px; height: 50px; object-fit: contain; border-radius: 4px; border: 1px solid #ddd; background: white;">
-            
-            <div style="flex: 1;">
-                <span class="prod-name" style="display: block; font-weight: bold; font-size: 0.95em; color: #000;">${p.nombre}</span>
-                <span class="prod-meta" style="color: #666; font-size: 0.85em;">
-                    <span style="${p.es_formato_grande ? 'color: #d35400; font-weight: bold;' : ''}">${p.precio.toFixed(2)}€</span> | 
-                    <span style="color: #0984e3; font-weight: bold;">${p.precio_ref > 0 ? p.precio_ref.toFixed(2) + '€/' + p.unidad : ''}</span>
-                </span>
-                ${p.es_formato_grande ? '<div style="font-size: 0.7em; color: #d35400; font-weight: bold; margin-top: 2px;">⚠️ Formato Ahorro/Grande</div>' : ''}
-            </div>
-        </div>
-        `;
-    }).join('');
-
-    // 3. Mostrar productos no encontrados (si los hay)
-    const missingDiv = document.getElementById(idMissing);
-    if (cesta.productos_no_encontrados && cesta.productos_no_encontrados.length > 0) {
-        missingDiv.innerHTML = `
-            <div class="missing-box">
-                <strong style="color: #900C3F;">❌ No encontrados:</strong><br>
-                <span style="color: #000; font-weight: 500;">${cesta.productos_no_encontrados.join(", ")}</span>
-            </div>`;
-    } else {
-        missingDiv.innerHTML = "";
+        <div class="prod-item" style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; color: #999; font-style: italic; height: 100%;">
+            <div style="width: 50px; height: 50px; background: #f9f9f9; border: 1px dashed #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.2em;">❓</div>
+            <div style="flex: 1;">No disponible en ${tienda}</div>
+        </div>`;
     }
+
+    const imgUrl = (p.imagen && p.imagen !== '') 
+        ? p.imagen 
+        : 'https://cdn-icons-png.flaticon.com/512/1147/1147931.png'; 
+
+    return `
+    <div class="prod-item" style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; height: 100%;">
+        <img src="${imgUrl}" alt="${p.nombre}" 
+             style="width: 50px; height: 50px; object-fit: contain; border-radius: 4px; border: 1px solid #ddd; background: white;">
+        
+        <div style="flex: 1;">
+            <span class="prod-name" style="display: block; font-weight: bold; font-size: 0.95em; color: #000; line-height:1.2;">${p.nombre}</span>
+            <span class="prod-meta" style="color: #666; font-size: 0.85em; display: flex; justify-content: space-between;">
+                <span style="${p.es_formato_grande ? 'color: #d35400; font-weight: bold;' : ''}">${p.precio.toFixed(2)}€</span>
+                <span style="color: #0984e3; font-weight: bold;">${p.precio_ref > 0 ? p.precio_ref.toFixed(2) + '€/' + p.unidad : ''}</span>
+            </span>
+            ${p.es_formato_grande ? '<div style="font-size: 0.7em; color: #d35400; font-weight: bold; margin-top: 2px;">⚠️ Formato Ahorro</div>' : ''}
+        </div>
+    </div>
+    `;
 }
 
 // --- NUEVA FUNCIÓN PARA GUARDAR ---

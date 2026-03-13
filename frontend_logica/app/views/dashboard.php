@@ -106,9 +106,12 @@ try {
                             <td><?php echo date('d/m/Y H:i', strtotime($cesta['created_at'])); ?></td>
                             <td style="font-weight: bold; color: <?php echo $colorGanador; ?>;"><?php echo $winner; ?></td>
                             <td style="font-weight: bold;"><?php echo number_format($cesta['total_price'], 2); ?> €</td>
-                            <td>
+                            <td style="display: flex; gap: 8px;">
                                 <button class="btn-ver" data-json='<?php echo $jsonSafe; ?>' onclick="cargarDetalle(this)">
-                                    👁️ Ver Detalles
+                                    👁️ Ver
+                                </button>
+                                <button class="btn-borrar" onclick="borrarCesta(<?php echo $cesta['id']; ?>, this)" style="background: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                                    🗑️ Borrar
                                 </button>
                             </td>
                         </tr>
@@ -128,27 +131,75 @@ try {
         </div>
 
         <h4 style="color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 20px;">🛒 Lista de la Compra</h4>
-        <div id="detail-banner" class="winner-banner"></div>
+        <div id="detail-banner" class="winner-banner">
+            <div id="winner-msg"></div>
+        </div>
 
-        <div class="comparison-row">
-            <div class="super-card card-mercadona">
-                <h3>Mercadona</h3>
-                <div id="m-price" class="price-tag">0.00 €</div>
-                <div id="m-list"></div>
-                <div id="m-missing"></div>
+        <div id="comparison-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px;">
+            <!-- Mercadona Header -->
+            <div style="background: #f4fbf7; padding: 20px; border-radius: 12px 12px 0 0; border: 1px solid #ddd; border-bottom: none; border-top: 5px solid #009432;">
+                <h3 style="color: #009432; margin: 0; border-bottom: 2px solid #009432; padding-bottom: 8px;">Mercadona</h3>
+                <div id="m-price" class="price-tag" style="margin-top: 10px; font-size: 1.5em;">0.00 €</div>
+            </div>
+            <!-- Dia Header -->
+            <div style="background: #fff5f6; padding: 20px; border-radius: 12px 12px 0 0; border: 1px solid #ddd; border-bottom: none; border-top: 5px solid #EA2027;">
+                <h3 style="color: #EA2027; margin: 0; border-bottom: 2px solid #EA2027; padding-bottom: 8px;">Dia</h3>
+                <div id="d-price" class="price-tag" style="margin-top: 10px; font-size: 1.5em;">0.00 €</div>
             </div>
 
-            <div class="super-card card-dia">
-                <h3>Dia</h3>
-                <div id="d-price" class="price-tag">0.00 €</div>
-                <div id="d-list"></div>
-                <div id="d-missing"></div>
+            <!-- Filas de productos inyectadas por JS -->
+            <div id="list-container" style="grid-column: 1 / span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px;">
             </div>
+
+            <!-- Footers (No encontrados) -->
+            <div id="m-missing" style="background: #f4fbf7; padding: 15px; border-radius: 0 0 12px 12px; border: 1px solid #ddd; border-top: none; color: #c0392b; font-size: 0.9em;"></div>
+            <div id="d-missing" style="background: #fff5f6; padding: 15px; border-radius: 0 0 12px 12px; border: 1px solid #ddd; border-top: none; color: #c0392b; font-size: 0.9em;"></div>
         </div>
     </div>
 </div>
 
 <script>
+async function borrarCesta(id, btn) {
+    if (!confirm("¿Estás seguro de que quieres borrar esta cesta del historial?")) return;
+
+    btn.disabled = true;
+    btn.innerText = "⏳...";
+
+    try {
+        const response = await fetch('/delete_basket.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id })
+        });
+
+        const res = await response.json();
+
+        if (response.ok) {
+            // Eliminar la fila de la tabla visualmente
+            const fila = btn.closest('tr');
+            fila.style.opacity = '0';
+            setTimeout(() => {
+                fila.remove();
+                // Si la tabla se queda vacía, recargar para mostrar mensaje de "no hay datos"
+                if (document.querySelectorAll('.history-table tbody tr').length === 0) {
+                    location.reload();
+                }
+            }, 300);
+            
+            // Ocultar el detalle si es la cesta que borramos
+            document.getElementById('detalle-cesta').style.display = 'none';
+        } else {
+            alert("Error: " + res.error);
+            btn.disabled = false;
+            btn.innerText = "🗑️ Borrar";
+        }
+    } catch (e) {
+        alert("Error de conexión al borrar.");
+        btn.disabled = false;
+        btn.innerText = "🗑️ Borrar";
+    }
+}
+
 function cargarDetalle(btn) {
     const jsonStr = btn.getAttribute('data-json');
     if (!jsonStr) return;
@@ -188,7 +239,17 @@ function renderizarVista(data) {
 
     // --- 2. BANNER GANADOR ---
     const banner = document.getElementById('detail-banner');
-    banner.innerHTML = `🏆 Ganador: <strong>${data.mejor_supermercado}</strong> | Ahorras: <strong>${data.ahorro_total} €</strong>`;
+    let savingsText = `En esta compra ahorraste <strong>${data.ahorro_total}€</strong>.`;
+    if (data.mensaje_ahorro) {
+        savingsText += `<div style="background: rgba(0,0,0,0.05); padding: 8px; border-radius: 6px; margin-top: 10px; font-size: 0.85em; color: #333; line-height: 1.3;">💡 <strong>Info:</strong> ${data.mensaje_ahorro}</div>`;
+    }
+
+    document.getElementById('winner-msg').innerHTML = `
+        <div style="font-size: 1.25em; margin-bottom: 5px;">🏆 Supermercado recomendado: <strong>${data.mejor_supermercado}</strong></div>
+        <div style="font-size: 1.05em;">
+            ${savingsText}
+        </div>
+    `;
     
     if (data.mejor_supermercado === 'Dia') {
         banner.style.background = "#fadbd8"; banner.style.color = "#721c24"; banner.style.borderColor = "#f5c6cb";
@@ -197,31 +258,113 @@ function renderizarVista(data) {
     }
 
     // --- 3. RENDERIZAR COLUMNAS ---
-    renderColumna(data.cesta_mercadona, 'm-price', 'm-list', 'm-missing');
-    renderColumna(data.cesta_dia, 'd-price', 'd-list', 'd-missing');
+    const container = document.getElementById('list-container');
+    const missingM = document.getElementById('m-missing');
+    const missingD = document.getElementById('d-missing');
+
+    document.getElementById('m-price').innerHTML = `
+        <div style="font-weight: bold;">${data.cesta_mercadona.total.toFixed(2)} €</div>
+        <div style="font-size: 0.5em; color: #0984e3;">🚀 Eficiencia: ${data.cesta_mercadona.total_normalizado.toFixed(2)}€/kg-L</div>
+    `;
+    document.getElementById('d-price').innerHTML = `
+        <div style="font-weight: bold;">${data.cesta_dia.total.toFixed(2)} €</div>
+        <div style="font-size: 0.5em; color: #0984e3;">🚀 Eficiencia: ${data.cesta_dia.total_normalizado.toFixed(2)}€/kg-L</div>
+    `;
+
+    container.innerHTML = "";
+    missingM.innerHTML = "";
+    missingD.innerHTML = "";
+
+    if (data.filas && data.filas.length > 0) {
+        // VISTA ALINEADA (MODERNA)
+        data.filas.forEach(fila => {
+            // Mercadona Cell
+            const divM = document.createElement('div');
+            divM.style.background = "#f4fbf7";
+            divM.style.padding = "0 20px 12px 20px";
+            divM.style.borderLeft = "1px solid #ddd";
+            divM.style.borderRight = "1px solid #ddd";
+            divM.innerHTML = crearHtmlDashboard(fila.mercadona, 'Mercadona');
+            
+            // Dia Cell
+            const divD = document.createElement('div');
+            divD.style.background = "#fff5f6";
+            divD.style.padding = "0 20px 12px 20px";
+            divD.style.borderLeft = "1px solid #ddd";
+            divD.style.borderRight = "1px solid #ddd";
+            divD.innerHTML = crearHtmlDashboard(fila.dia, 'Dia');
+
+            container.appendChild(divM);
+            container.appendChild(divD);
+        });
+    } else {
+        // VISTA ANTIGUA (FALLBACK)
+        container.innerHTML = `<div style="grid-column: 1 / span 2; padding: 20px; text-align: center; color: #666;">
+            Esta cesta se guardó con una versión antigua. Los productos se muestran por columnas.
+        </div>`;
+        renderColumnaLegacy(data.cesta_mercadona, container, true);
+        renderColumnaLegacy(data.cesta_dia, container, false);
+    }
+
+    // Footers
+    const mMiss = data.cesta_mercadona.productos_no_encontrados;
+    const dMiss = data.cesta_dia.productos_no_encontrados;
+    missingM.innerHTML = mMiss.length ? `❌ No disponible: ${mMiss.join(", ")}` : "";
+    missingD.innerHTML = dMiss.length ? `❌ No disponible: ${dMiss.join(", ")}` : "";
 
     visor.scrollIntoView({behavior: "smooth"});
 }
 
-function renderColumna(cesta, idPrice, idList, idMissing) {
-    document.getElementById(idPrice).innerText = cesta.total.toFixed(2) + " €";
-    
-    document.getElementById(idList).innerHTML = cesta.productos_encontrados.map(p => `
-        <div class="prod-item">
-            <span class="prod-name">${p.nombre}</span>
-            <span class="prod-meta">${p.precio}€ / ${p.unidad}</span>
-        </div>
-    `).join('');
-
-    const missingContainer = document.getElementById(idMissing);
-    if (cesta.productos_no_encontrados && cesta.productos_no_encontrados.length > 0) {
-        missingContainer.innerHTML = `
-            <div class="missing-box">
-                <strong style="color: #900C3F;">❌ No encontrados:</strong><br>
-                <span style="color: #000; font-weight: 500;">${cesta.productos_no_encontrados.join(", ")}</span>
-            </div>`;
-    } else {
-        missingContainer.innerHTML = "";
+function crearHtmlDashboard(p, tienda) {
+    if (!p) {
+        return `
+        <div class="prod-item" style="display: flex; align-items: center; gap: 12px; height: 100%; color: #999; font-style: italic; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+            <div style="width: 45px; height: 45px; background: #f9f9f9; border: 1px dashed #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center;">❓</div>
+            <div style="flex: 1;">No disponible</div>
+        </div>`;
     }
+
+    const imgUrl = (p.imagen && p.imagen !== '') 
+        ? p.imagen 
+        : 'https://cdn-icons-png.flaticon.com/512/1147/1147931.png';
+
+    return `
+    <div class="prod-item" style="display: flex; align-items: center; gap: 12px; height: 100%; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+        <img src="${imgUrl}" alt="${p.nombre}" 
+             style="width: 50px; height: 50px; object-fit: contain; border-radius: 4px; border: 1px solid #ddd; background: white;">
+        <div style="flex: 1;">
+            <span class="prod-name" style="font-size: 0.9em; line-height: 1.2;">${p.nombre}</span>
+            <span class="prod-meta" style="font-size: 0.8em;">${p.precio.toFixed(2)}€ / ${p.unidad}</span>
+        </div>
+    </div>
+    `;
+}
+
+function renderColumnaLegacy(cesta, container, isMercadona) {
+    const bgColor = isMercadona ? "#f4fbf7" : "#fff5f6";
+    const sideDiv = document.createElement('div');
+    sideDiv.style.background = bgColor;
+    sideDiv.style.padding = "20px";
+    sideDiv.style.border = "1px solid #ddd";
+
+    let html = cesta.productos_encontrados.map(p => {
+        const imgUrl = (p.imagen && p.imagen !== '') 
+            ? p.imagen 
+            : 'https://cdn-icons-png.flaticon.com/512/1147/1147931.png';
+
+        return `
+        <div class="prod-item" style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+            <img src="${imgUrl}" alt="${p.nombre}" 
+                 style="width: 45px; height: 45px; object-fit: contain; border-radius: 4px; border: 1px solid #ddd; background: white;">
+            <div style="flex: 1;">
+                <span class="prod-name" style="font-size: 0.9em; font-weight: bold;">${p.nombre}</span>
+                <span class="prod-meta" style="font-size: 0.8em; color: #666; display: block;">${p.precio.toFixed(2)}€</span>
+            </div>
+        </div>
+        `;
+    }).join('');
+
+    sideDiv.innerHTML = html;
+    container.appendChild(sideDiv);
 }
 </script>

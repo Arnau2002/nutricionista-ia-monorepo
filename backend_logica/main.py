@@ -66,6 +66,9 @@ class ComparativaFinal(BaseModel):
     ahorro_total: float
     cesta_mercadona: dict
     cesta_dia: dict
+    filas: List[dict] = []
+    mensaje_ahorro: str = ""
+    comparativa_completa: bool = True
 
 # Configuración Semántica básica
 CONTEXTO_SEMANTICO = {
@@ -79,7 +82,7 @@ CONTEXTO_SEMANTICO = {
     "queso": "queso tierno",
     "yogur": "yogur natural",
     "huevo": "huevos docena",
-    "pan": "pan molde",
+    "pan": "pan de barra",
     "aceite": "aceite oliva virgen",
     "vinagre": "vinagre vino",
     "pasta": "macarrones",
@@ -93,7 +96,10 @@ CONTEXTO_SEMANTICO = {
     "edamame": "edamame congelado",
     "aguacate": "aguacate pieza",
     "azucar": "azucar blanco 1kg",
-    "vinagre de arroz": "vinagre arroz sushi"
+    "vinagre de arroz": "vinagre arroz sushi",
+    "pimenton": "pimenton dulce",
+    "sal": "sal fina",
+    "merluza": "lomo merluza fresco"
 }
 
 # Palabras a ignorar en la búsqueda
@@ -115,7 +121,8 @@ PALABRAS_PROHIBIDAS_GLOBAL = [
     "pate", "pateo", "crema de", "sobrasada", "mousse", "pienso", "comida para", "suplemento",
     "deliplus", "bosque verde", "baby smile", "fresco y limpio", "cosmetica", "limpieza", 
     "perfumeria", "detergente", "suavizante", "lavavajillas", "servilleta", "papel higienico",
-    "algarrobo"
+    "algarrobo", "protector solar", "solar", "depilatoria", "limpiadora", "capilar", "facial", 
+    "bocal", "dentifrico", "hidratante", "corporal", "enjuague", "cepillo", "gel de baño"
 ]
 
 CATEGORIAS_PROHIBIDAS = [
@@ -129,8 +136,11 @@ CATEGORIAS_PROHIBIDAS = [
 ]
 
 # Configuración de precios y formatos
-UMBRAL_PRECIO_NORMAL = 15.0 # A partir de 15€ consideramos que es un formato "grande"
-MAX_PENALIZACION_FORMATO = 5.0 # Factor máximo de penalización por tamaño excesivo
+UMBRAL_PRECIO_NORMAL = 15.0 
+MAX_PENALIZACION_FORMATO = 5.0 
+
+# Palabras que DEBEN estar si están en la query
+OBLIGATORIAS_GLOBAL = ["leche", "vino", "aceite", "vinagre", "huevo", "pan", "harina", "queso", "yogur"]
 
 # 5. GRUPOS DE PROTEÍNAS (Lógica de filtrado)
 PROTEINAS_PESCADO = ["atun", "salmon", "merluza", "bacalao", "gambas", "langostinos", "pescado", "sepia", "calamar"]
@@ -172,7 +182,10 @@ MAPEO_CATEGORIAS = {
     "pan": ["Panaderia", "Horno", "/panes-harinas-y-masas/"],
     "alga": ["Sushi", "Mundo", "Internacional", "algas"],
     "edamame": ["Congelados", "Verdura", "soja"],
-    "aguacate": ["Fruta", "Verdura", "Tropical"]
+    "aguacate": ["Fruta", "Verdura", "Tropical"],
+    "pimenton": ["Especias", "Aceite", "Alacena", "Condimentos"],
+    "sal": ["Especias", "Alacena", "Condimentos", "Sal"],
+    "especias": ["Especias", "Condimentos"]
 }
 
 MAPEO_ALERGIAS = {
@@ -262,9 +275,7 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
     p_set = set(prod_tokens)
     
     # Match Robusto: Palabras obligatorias
-    # Si la búsqueda contiene palabras estructurales, el producto DEBE tenerlas
-    obligatorias = ["vinagre", "aceite", "leche", "huevo", "pan", "harina", "yogur"]
-    for ob in obligatorias:
+    for ob in OBLIGATORIAS_GLOBAL:
         if ob in q_set and ob not in p_set:
             return 0.0
 
@@ -315,10 +326,10 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
 
     # Penalización de ultra-procesados si se busca un básico
     # Si buscamos un básico (pollo, carne, pescado) penalizamos ultra-procesados
-    procesados = ["nugget", "rebozado", "varita", "sanjacobo", "preparado", "listo", "flamenquin", "croqueta"]
+    procesados = ["nugget", "rebozado", "rebozada", "empanado", "empanada", "empanadilla", "masa", "varita", "sanjacobo", "preparado", "listo", "flamenquin", "croqueta", "relleno"]
     if any(p in PROTEINAS_CRÍTICAS for p in query_tokens):
         if any(proc in nombre_prod for proc in procesados):
-            return 0.01 # Puntuación mínima para que casi desaparezcan
+            return 0.01 
 
     # 5. POSICIONAMIENTO
     pos_score = 0.0
@@ -341,7 +352,7 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
         final_score += 0.15 
 
     # Boost para productos básicos
-    BASIKOS = ["pepino", "tomate", "cebolla", "patata", "aguacate", "huevo", "leche", "arroz", "atun", "alga", "edamame", "azucar", "lechuga", "ajo", "garbanzo", "lenteja", "alubia", "carne", "cerdo", "ternera", "merluza"]
+    BASIKOS = ["pepino", "tomate", "cebolla", "patata", "aguacate", "huevo", "leche", "arroz", "atun", "alga", "edamame", "azucar", "lechuga", "ajo", "garbanzo", "lenteja", "alubia", "carne", "cerdo", "ternera", "merluza", "pimenton", "sal"]
     if any(any(b in t or t in b for t in query_tokens) for b in BASIKOS):
         # El bono solo se aplica si realmente hay un match con el básico
         for b in BASIKOS:
@@ -349,6 +360,9 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
                 final_score += 0.55 
                 if prod_tokens[0] == b:
                     final_score += 0.25
+                # Bono extra para leches y especias para asegurar que no se pierdan
+                if b in ["leche", "pimenton", "sal"]:
+                    final_score += 0.3
 
     # 8. PENALIZACIÓN POR EXCESO DE RUIDO
     extra_words = [w for w in p_set.difference(q_set) if w not in ["de", "con", "en", "el", "la", "unidad", "kg", "gr", "pieza"]]
@@ -393,9 +407,12 @@ def buscar_producto_inteligente(ingrediente: str, reintento_simple=False, alergi
     
     # 3. Búsqueda Vectorial independiente por tienda
     # Hacemos dos búsquedas separadas para garantizar que Dia no sea 'eclipsado' por Mercadona
+    # Subimos el límite para Mercadona (leche corporal, etc. suelen llenar los primeros resultados)
+    limit_m = 650 if "leche" in ingrediente_limpio else 300
+    
     search_queries = [
-        {"tienda": "Mercadona", "limit": 150},
-        {"tienda": "Dia", "limit": 250} # Dia tiene más 'ruido' en el vector space
+        {"tienda": "Mercadona", "limit": limit_m},
+        {"tienda": "Dia", "limit": 400} 
     ]
     
     resultados_totales = []
@@ -519,6 +536,7 @@ def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = None) 
     comparativa_justa_m = 0.0
     comparativa_justa_d = 0.0
     items_comunes_count = 0
+    filas = []
 
     def local_comp_price(item, qty):
         if not item: return 0.0
@@ -573,6 +591,13 @@ def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = None) 
             comparativa_justa_m += best_m["precio"]
             comparativa_justa_d += best_d["precio"]
             items_comunes_count += 1
+            
+        # Guardar fila para alineación UI
+        filas.append({
+            "ingrediente": ing_nombre,
+            "mercadona": best_m,
+            "dia": best_d
+        })
 
     # Cálculo final de ahorro y ganador
     # Atendiendo a la petición del usuario: comparamos la resta de los tickets reales
@@ -596,11 +621,20 @@ def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = None) 
                 items_unicos.append(it)
         return items_unicos
 
+    # --- NUEVA LÓGICA DE DETECCIÓN DE EFICIENCIA VS TICKET ---
+    mensaje_ahorro = ""
+    # Caso A: Mercadona más caro en ticket pero más barato por kilo/litro
+    if cesta_m["total"] > cesta_d["total"] and comp_m < comp_d:
+        mensaje_ahorro = "Nota: Mercadona tiene mejor precio medio por Kg/L, pero tu ticket es mayor porque los productos seleccionados son de mayor tamaño (formatos familiares/ahorro)."
+    # Caso B: Dia más caro en ticket pero más barato por kilo/litro
+    elif cesta_d["total"] > cesta_m["total"] and comp_d < comp_m:
+        mensaje_ahorro = "Nota: Dia tiene mejor precio medio por Kg/L, pero tu ticket es mayor porque los productos seleccionados son de mayor tamaño (formatos familiares/ahorro)."
+
+    comp_completa = (len(cesta_m["missing"]) == 0 and len(cesta_d["missing"]) == 0)
+
     return {
         "mejor_supermercado": ganador,
         "ahorro_total": ahorro,
-        "comparativa_completa": len(cesta_m["missing"]) == 0 and len(cesta_d["missing"]) == 0,
-        "items_faltantes_total": len(cesta_m["missing"]) + len(cesta_d["missing"]),
         "cesta_mercadona": {
             "supermercado": "Mercadona",
             "total": round(cesta_m["total"], 2),
@@ -616,7 +650,10 @@ def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = None) 
             "productos_encontrados": unificar_cesta(cesta_d["items"]),
             "productos_no_encontrados": sorted(list(set(cesta_d["missing"]))),
             "num_faltantes": len(set(cesta_d["missing"]))
-        }
+        },
+        "filas": filas,
+        "mensaje_ahorro": mensaje_ahorro,
+        "comparativa_completa": comp_completa
     }
 
 # ENDPOINTS 
