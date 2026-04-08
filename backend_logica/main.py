@@ -56,10 +56,15 @@ class ListaCompraRequest(BaseModel):
     objetivo: Optional[str] = "Ahorro"
 
 class MenuRequest(BaseModel):
-    prompt: str
-    dieta: Optional[str] = "Equilibrada"
+    prompt: str = "" # Hacemos opcional el prompt si enviamos preferencias, pero de momento conservamos por compati.
+    num_personas: Optional[int] = 2
+    tipo_dieta: Optional[str] = "omnívora"
+    intolerancias: Optional[List[str]] = []
     alergias: Optional[List[str]] = []
-    objetivo: Optional[str] = "Ahorro"
+    no_me_gusta: Optional[List[str]] = []
+    me_gusta: Optional[List[str]] = []
+    objetivo: Optional[str] = "equilibrado"
+    incluir_snacks: Optional[bool] = False
 
 class ComparativaFinal(BaseModel):
     mejor_supermercado: str
@@ -99,12 +104,16 @@ CONTEXTO_SEMANTICO = {
     "vinagre de arroz": "vinagre arroz sushi",
     "pimenton": "pimenton dulce",
     "sal": "sal fina",
-    "merluza": "lomo merluza fresco"
+    "merluza": "lomo merluza fresco",
+    "platano": "platano canarias",
+    "tofu": "tofu firme estilo japones",
+    "nuez": "nuez pelada frutos secos",
+    "manzana": "manzana golden"
 }
 
 # Palabras a ignorar en la búsqueda
 PALABRAS_A_IGNORAR = [
-    "maduro", "maduros", "fresco", "fresca", "frescos", "natural", "naturales",
+    "maduro", "maduros", "fresco", "fresca", "frescas", "frescos", "natural", "naturales",
     "de grano completo", "tipo", "estilo", "casero", "casera", "selección",
     "premium", "gourmet", "bio", "eco", "orgánico", "sano", "healthy",
     "un kilo de", "una docena de", "medio kilo de", "litro de", "un bote de", "un paquete de",
@@ -113,7 +122,8 @@ PALABRAS_A_IGNORAR = [
     "cocido", "cocida", "en bote", "en conserva", "lavada", "cortada", "limpio", "limpia",
     "marca", "blanca", "hacendado", "dia", "calidad", "extra", "superior", "especial",
     "variado", "mixto", "mezcla", "sabor", "congelado", "congelada", "ultracongelado",
-    "fuego", "lento", "receta", "tradicional", "abuela", "artesano", "artesana"
+    "fuego", "lento", "receta", "tradicional", "abuela", "artesano", "artesana",
+    "virgen", "dulce", "ahumado", "picatostes", "tostado"
 ]
 
 PALABRAS_PROHIBIDAS_GLOBAL = [
@@ -142,7 +152,8 @@ MAX_PENALIZACION_FORMATO = 5.0
 # Palabras que DEBEN estar si están en la query
 OBLIGATORIAS_GLOBAL = ["leche", "vino", "aceite", "vinagre", "huevo", "pan", "harina", "queso", "yogur"]
 
-# 5. GRUPOS DE PROTEÍNAS (Lógica de filtrado)
+# DICCIONARIOS DE SUSTITUCIÓN Y LIMPIEZA
+# Proteínas
 PROTEINAS_PESCADO = ["atun", "salmon", "merluza", "bacalao", "gambas", "langostinos", "pescado", "sepia", "calamar"]
 PROTEINAS_CARNE = ["pollo", "pavo", "cerdo", "ternera", "vaca", "buey", "cordero", "conejo", "lomo", "hamburguesa"]
 PROTEINAS_CRÍTICAS = PROTEINAS_PESCADO + PROTEINAS_CARNE
@@ -238,8 +249,10 @@ def tokenizar(texto: str) -> list:
     tokens = []
     for p in palabras:
         if len(p) >= 2 and p not in stopwords:
-            # Eliminamos plurales comunes sin destrozar la palabra
-            if p.endswith('s') and len(p) > 3:
+            # Eliminamos plurales comunes sin destrozar la palabra, excepto casos como nuez/nueces
+            if p == 'nueces':
+                p = 'nuez'
+            elif p.endswith('s') and len(p) > 3 and not p.endswith('ss'):
                 p = p[:-1]
             tokens.append(p)
     return tokens
@@ -453,8 +466,8 @@ def buscar_producto_inteligente(ingrediente: str, reintento_simple=False, alergi
         
         item['final_score'] = calcular_score_v15(item, ingrediente_limpio, alergias)
         
-        # Umbral de seguridad mínimo
-        if item['final_score'] > 0.05: 
+        # Umbral de seguridad mínimo ELEVADO a 0.25 para evitar falsos positivos ridículos (ej. espinacas por butifarra)
+        if item['final_score'] > 0.25: 
             item['es_formato_grande'] = item['precio'] > UMBRAL_PRECIO_NORMAL
             candidates.append(item)
 
@@ -592,12 +605,54 @@ def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = None) 
             comparativa_justa_d += best_d["precio"]
             items_comunes_count += 1
             
-        # Guardar fila para alineación UI
+        # Guardar fila para alineación UI (sin deduplicar todavía)
         filas.append({
             "ingrediente": ing_nombre,
             "mercadona": best_m,
             "dia": best_d
         })
+
+    # -- Deduplicación de Filas Agresiva --
+    vistos_m = set()
+    vistos_d = set()
+    filas_unicas = []
+    
+    for f in filas:
+        m_name = f["mercadona"]["nombre"] if f["mercadona"] else ""
+        d_name = f["dia"]["nombre"] if f["dia"] else ""
+        
+        # Si alguno de los dos productos YA ha sido mostrado en la lista en otra fila, omitimos la fila
+        # Esto agrupa definitivamente sub-variantes de ingredientes
+        ya_visto_m = m_name != "" and m_name in vistos_m
+        ya_visto_d = d_name != "" and d_name in vistos_d
+        
+        if ya_visto_m or ya_visto_d:
+            continue
+            
+        if m_name: vistos_m.add(m_name)
+        if d_name: vistos_d.add(d_name)
+            
+        filas_unicas.append(f)
+
+    # -- Calculo de la Cesta Mixta (Mejor opción absoluta) --
+    cesta_mixta_total = 0.0
+    cesta_mixta_items = 0
+    for f in filas_unicas:
+        pm = f["mercadona"]["precio"] if f["mercadona"] else float('inf')
+        pd = f["dia"]["precio"] if f["dia"] else float('inf')
+        
+        if pm == float('inf') and pd == float('inf'):
+            f["recomendado_mixto"] = "ninguno"
+            continue
+            
+        if pm <= pd:
+            cesta_mixta_total += pm
+            cesta_mixta_items += 1
+            f["recomendado_mixto"] = "Mercadona"
+        else:
+            cesta_mixta_total += pd
+            cesta_mixta_items += 1
+            f["recomendado_mixto"] = "Dia"
 
     # Cálculo final de ahorro y ganador
     # Atendiendo a la petición del usuario: comparamos la resta de los tickets reales
@@ -607,6 +662,12 @@ def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = None) 
     if cesta_m["total"] < cesta_d["total"]: ganador = "Mercadona"
     elif cesta_d["total"] < cesta_m["total"]: ganador = "Dia"
     else: ganador = "Empate"
+
+    # Si la cesta mixta es todavía más barata, avisamos.
+    if cesta_mixta_total < min(cesta_m["total"], cesta_d["total"]):
+        ahorro_mixto = round(max(cesta_m["total"], cesta_d["total"]) - cesta_mixta_total, 2)
+    else:
+        ahorro_mixto = ahorro
 
     # Unificación de salida para evitar líneas repetidas en la UI
     # Si dos ingredientes distintos del menú mapean al MISMO producto del súper, 
@@ -635,6 +696,11 @@ def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = None) 
     return {
         "mejor_supermercado": ganador,
         "ahorro_total": ahorro,
+        "cesta_mixta": {
+            "total": round(cesta_mixta_total, 2),
+            "ahorro_potencial": ahorro_mixto,
+            "items": cesta_mixta_items
+        },
         "cesta_mercadona": {
             "supermercado": "Mercadona",
             "total": round(cesta_m["total"], 2),
@@ -651,7 +717,7 @@ def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = None) 
             "productos_no_encontrados": sorted(list(set(cesta_d["missing"]))),
             "num_faltantes": len(set(cesta_d["missing"]))
         },
-        "filas": filas,
+        "filas": filas_unicas,
         "mensaje_ahorro": mensaje_ahorro,
         "comparativa_completa": comp_completa
     }
@@ -691,10 +757,17 @@ async def planificar_menu(req: MenuRequest):
             }
         else:
             resultado_chef = generar_lista_desde_menu(
-                req.prompt, 
-                dieta=req.dieta, 
-                alergias=req.alergias, 
-                objetivo=req.objetivo
+                prefs={
+                    "prompt_usuario": req.prompt,
+                    "num_personas": req.num_personas,
+                    "tipo_dieta": req.tipo_dieta,
+                    "intolerancias": req.intolerancias,
+                    "alergias": req.alergias,
+                    "no_me_gusta": req.no_me_gusta,
+                    "me_gusta": req.me_gusta,
+                    "objetivo": req.objetivo,
+                    "incluir_snacks": req.incluir_snacks
+                }
             )
         
         if "error" in resultado_chef:

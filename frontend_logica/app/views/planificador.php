@@ -180,8 +180,8 @@ async function pedirMenu() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                prompt: prompt,
-                dieta: dieta,
+                prompt_usuario: prompt,
+                tipo_dieta: dieta,
                 alergias: alergias,
                 objetivo: objetivo
             })
@@ -228,7 +228,15 @@ function renderizarMenu(data) {
             </div>`;
     }
 
-    let savingsText = `Ahorrarás <strong>${comp.ahorro_total}€</strong> comprando en ${comp.mejor_supermercado}.`;
+    let savingsText = `Ahorrarás <strong>${comp.ahorro_total}€</strong> comprando todo en ${comp.mejor_supermercado}.`;
+    
+    // --- NUEVO: Cesta Mixta ---
+    if (comp.cesta_mixta && comp.cesta_mixta.total > 0) {
+        savingsText += `<div style="margin-top: 10px; font-size: 1.1em; color: #8e44ad;">
+            🔀 <strong>Compra Mixta Óptima:</strong> Si compras lo más barato de cada tienda, pagarás solo <strong>${comp.cesta_mixta.total}€</strong> (ahorro potencial de ${comp.cesta_mixta.ahorro_potencial}€).
+        </div>`;
+    }
+
     if (comp.mensaje_ahorro) {
         savingsText += `<div style="background: rgba(255,255,255,0.5); padding: 8px; border-radius: 6px; margin-top: 10px; font-size: 0.85em; color: #111; line-height: 1.3;">💡 <strong>Info:</strong> ${comp.mensaje_ahorro}</div>`;
     }
@@ -261,21 +269,24 @@ function renderizarMenu(data) {
 
     if (comp.filas && comp.filas.length > 0) {
         comp.filas.forEach(fila => {
+            const isMixM = fila.recomendado_mixto === 'Mercadona';
+            const isMixD = fila.recomendado_mixto === 'Dia';
+
             // Mercadona Cell
             const divM = document.createElement('div');
-            divM.style.background = "#f4fbf7";
+            divM.style.background = isMixM ? "#e8f8f5" : "#f4fbf7"; // Highlight if mixed choice
             divM.style.padding = "0 20px 12px 20px";
             divM.style.borderLeft = "1px solid #ddd";
             divM.style.borderRight = "1px solid #ddd";
-            divM.innerHTML = crearHtmlElemento(fila.mercadona, 'Mercadona');
+            divM.innerHTML = crearHtmlElemento(fila.mercadona, 'Mercadona', isMixM);
             
             // Dia Cell
             const divD = document.createElement('div');
-            divD.style.background = "#fff5f6";
+            divD.style.background = isMixD ? "#fdf2e9" : "#fff5f6"; // Highlight if mixed choice
             divD.style.padding = "0 20px 12px 20px";
             divD.style.borderLeft = "1px solid #ddd";
             divD.style.borderRight = "1px solid #ddd";
-            divD.innerHTML = crearHtmlElemento(fila.dia, 'Dia');
+            divD.innerHTML = crearHtmlElemento(fila.dia, 'Dia', isMixD);
 
             listContainer.appendChild(divM);
             listContainer.appendChild(divD);
@@ -289,7 +300,7 @@ function renderizarMenu(data) {
     document.getElementById('d-missing').innerHTML = dMiss.length ? `❌ No disponible: ${dMiss.join(", ")}` : "";
 }
 
-function crearHtmlElemento(p, tienda) {
+function crearHtmlElemento(p, tienda, isMix = false) {
     if (!p) {
         return `
         <div class="prod-item" style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; color: #999; font-style: italic; height: 100%;">
@@ -301,6 +312,8 @@ function crearHtmlElemento(p, tienda) {
     const imgUrl = (p.imagen && p.imagen !== '') 
         ? p.imagen 
         : 'https://cdn-icons-png.flaticon.com/512/1147/1147931.png'; 
+        
+    const badgeHtml = isMix ? '<div style="font-size: 0.7em; background: #8e44ad; color: white; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 3px; font-weight: bold;">⭐ Lo más barato</div>' : '';
 
     return `
     <div class="prod-item" style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; height: 100%;">
@@ -308,6 +321,7 @@ function crearHtmlElemento(p, tienda) {
              style="width: 50px; height: 50px; object-fit: contain; border-radius: 4px; border: 1px solid #ddd; background: white;">
         
         <div style="flex: 1;">
+            ${badgeHtml}
             <span class="prod-name" style="display: block; font-weight: bold; font-size: 0.95em; color: #000; line-height:1.2;">${p.nombre}</span>
             <span class="prod-meta" style="color: #666; font-size: 0.85em; display: flex; justify-content: space-between;">
                 <span style="${p.es_formato_grande ? 'color: #d35400; font-weight: bold;' : ''}">${p.precio.toFixed(2)}€</span>

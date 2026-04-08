@@ -10,13 +10,24 @@ class AuthModel
 
     public function __construct()
     {
-        // CONFIGURACIÓN DIRECTA PARA DOCKER
-        // Usamos las mismas credenciales que en dashboard.php y save_basket.php
-        $host = 'nutricionista-mysql';
-        $db = 'precios_comparados';
-        $user = 'root';
-        $pass = 'password_segura';
-        $charset = 'utf8mb4';
+        // Referenciamos la configuración centralizada de la Base de Datos
+        $dbConfigPath = __DIR__ . '/../../storage/db.php';
+        
+        if (file_exists($dbConfigPath)) {
+            $config = require $dbConfigPath;
+            $host = $config['host'] ?? 'nutricionista-mysql';
+            $db = $config['db'] ?? 'precios_comparados';
+            $user = $config['user'] ?? 'root';
+            $pass = $config['pass'] ?? 'password_segura';
+            $charset = $config['charset'] ?? 'utf8mb4';
+        } else {
+            // Fallback (solo por si acaso)
+            $host = 'nutricionista-mysql';
+            $db = 'precios_comparados';
+            $user = 'root';
+            $pass = 'password_segura';
+            $charset = 'utf8mb4';
+        }
 
         $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 
