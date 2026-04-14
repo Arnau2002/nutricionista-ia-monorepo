@@ -50,13 +50,15 @@ class ItemBusqueda(BaseModel):
     ingrediente: str
 
 class ListaCompraRequest(BaseModel):
-    ingredientes: List[str]
+    ingredientes: List[dict | str]
     dieta: Optional[str] = "Equilibrada"
     alergias: Optional[List[str]] = []
     objetivo: Optional[str] = "Ahorro"
+    ingredientes_en_casa: Optional[List[str]] = []
 
 class MenuRequest(BaseModel):
     prompt: str = "" # Hacemos opcional el prompt si enviamos preferencias, pero de momento conservamos por compati.
+    prompt_usuario: Optional[str] = ""
     num_personas: Optional[int] = 2
     tipo_dieta: Optional[str] = "omnívora"
     intolerancias: Optional[List[str]] = []
@@ -65,6 +67,7 @@ class MenuRequest(BaseModel):
     me_gusta: Optional[List[str]] = []
     objetivo: Optional[str] = "equilibrado"
     incluir_snacks: Optional[bool] = False
+    ingredientes_en_casa: Optional[List[str]] = []
 
 class ComparativaFinal(BaseModel):
     mejor_supermercado: str
@@ -256,6 +259,27 @@ def tokenizar(texto: str) -> list:
                 p = p[:-1]
             tokens.append(p)
     return tokens
+
+def normalizar_lista_textos(items: Optional[List[str]]) -> set:
+    if not items:
+        return set()
+    return {normalizar(x) for x in items if isinstance(x, str) and normalizar(x)}
+
+def filtrar_ingredientes_en_casa(lista_ingredientes: List[any], ingredientes_en_casa: Optional[List[str]]) -> tuple[list, list]:
+    """Elimina ingredientes que el usuario ya tiene para recalcular la cesta real."""
+    despensa = normalizar_lista_textos(ingredientes_en_casa)
+    if not despensa:
+        return lista_ingredientes, []
+
+    filtrados = []
+    excluidos = []
+    for ing in lista_ingredientes:
+        nombre = ing.get("nombre", "") if isinstance(ing, dict) else str(ing)
+        if normalizar(nombre) in despensa:
+            excluidos.append(nombre)
+        else:
+            filtrados.append(ing)
+    return filtrados, excluidos
 
 # Lógica de Scoring
 def calcular_score_v15(producto: dict, query_original: str, alergias: list = None) -> float:
@@ -725,7 +749,8 @@ def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = None) 
 # ENDPOINTS 
 @app.post("/comparar-lista-compra", response_model=ComparativaFinal)
 async def comparar_lista_compra(lista: ListaCompraRequest):
-    return procesar_lista_compra(lista.ingredientes, alergias=lista.alergias if hasattr(lista, 'alergias') else None)
+    ingredientes_filtrados, _ = filtrar_ingredientes_en_casa(lista.ingredientes, lista.ingredientes_en_casa)
+    return procesar_lista_compra(ingredientes_filtrados, alergias=lista.alergias if hasattr(lista, 'alergias') else None)
 
 @app.get("/test-debug")
 async def test_debug():
@@ -735,8 +760,11 @@ async def test_debug():
 async def planificar_menu(req: MenuRequest):
     import traceback
     try:
+        prompt_usuario = (req.prompt_usuario or req.prompt or "").strip()
+        num_personas = max(1, int(req.num_personas or 2))
+
         # Caso especial Sushi (Mock)
-        prompt_min = req.prompt.lower()
+        prompt_min = prompt_usuario.lower()
         if "sushi" in prompt_min:
             resultado_chef = {
                 "menu_pensado": [
@@ -758,8 +786,8 @@ async def planificar_menu(req: MenuRequest):
         else:
             resultado_chef = generar_lista_desde_menu(
                 prefs={
-                    "prompt_usuario": req.prompt,
-                    "num_personas": req.num_personas,
+                    "prompt_usuario": prompt_usuario,
+                    "num_personas": num_personas,
                     "tipo_dieta": req.tipo_dieta,
                     "intolerancias": req.intolerancias,
                     "alergias": req.alergias,
@@ -775,13 +803,19 @@ async def planificar_menu(req: MenuRequest):
         
         print(f"👨‍🍳 Chef dice: {resultado_chef}")
         ingredientes_crudos = resultado_chef.get("ingredientes_clave", [])
+        ingredientes_filtrados, ingredientes_excluidos = filtrar_ingredientes_en_casa(
+            ingredientes_crudos,
+            req.ingredientes_en_casa
+        )
         
-        comparativa = procesar_lista_compra(ingredientes_crudos, alergias=req.alergias)
+        comparativa = procesar_lista_compra(ingredientes_filtrados, alergias=req.alergias)
         
         return {
             "menu": resultado_chef.get("menu_pensado", []),
             "ingredientes_originales": ingredientes_crudos,
-            "ingredientes_limpios": ingredientes_crudos, 
+            "ingredientes_limpios": ingredientes_filtrados,
+            "ingredientes_excluidos_despensa": ingredientes_excluidos,
+            "num_personas": num_personas,
             "comparativa": comparativa
         }
     except Exception as e:

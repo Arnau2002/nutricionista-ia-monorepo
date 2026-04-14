@@ -49,6 +49,10 @@
     
     .missing-box { margin-top: 15px; padding: 15px; background: #fdedec; border: 1px solid #e6b0aa; border-radius: 6px; color: #c0392b; font-size: 0.9em; }
     .winner-banner { background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; text-align: center; border: 1px solid #c3e6cb; font-size: 1.2em; font-weight: bold; margin-bottom: 20px;}
+
+    .ingredientes-meta { margin-top: 12px; background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
+    .ingredientes-meta h4 { margin: 0 0 8px 0; color: #2c3e50; }
+    .ingredientes-meta ul { margin: 0; padding-left: 18px; color: #222; }
 </style>
 
 <div class="card planificador-container" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -61,6 +65,10 @@
     <div style="background: #fdfefe; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 20px; max-width: 800px; margin-left: auto; margin-right: auto;">
         <p style="margin-top:0; font-weight:bold; color: #2ecc71; text-align: center;">⚙️ Personalización del Menú</p>
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 120px;">
+                <label><strong>Personas:</strong></label>
+                <input type="number" id="numPersonasInput" min="1" max="12" value="2" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+            </div>
             <div style="flex: 1; min-width: 150px;">
                 <label><strong>Dieta:</strong></label>
                 <select id="dietaSelect" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
@@ -82,6 +90,10 @@
             <div style="flex: 2; min-width: 250px;">
                 <label><strong>Alergias (separadas por comas):</strong></label>
                 <input type="text" id="alergiasInput" placeholder="Ej: Nueces, Marisco, Lactosa" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+            </div>
+            <div style="flex: 2; min-width: 250px;">
+                <label><strong>Ingredientes que ya tienes:</strong></label>
+                <input type="text" id="despensaInput" placeholder="Ej: sal, aceite, arroz" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
             </div>
         </div>
     </div>
@@ -106,6 +118,7 @@
 
         <h3 style="color: #2c3e50; margin-bottom: 15px;">🍽️ Tu Menú Personalizado</h3>
         <div id="menu-container" class="menu-grid"></div>
+        <div id="ingredientes-meta" class="ingredientes-meta" style="display:none;"></div>
 
         <h3 style="color: #2c3e50; margin-bottom: 15px; margin-top: 30px;">🛒 Tu Lista de la Compra</h3>
         <div id="winner-banner" class="winner-banner"></div>
@@ -166,7 +179,9 @@ async function pedirMenu() {
 
     const dieta = document.getElementById('dietaSelect').value;
     const objetivo = document.getElementById('objetivoSelect').value;
+    const numPersonas = parseInt(document.getElementById('numPersonasInput').value || '2', 10);
     const alergias = document.getElementById('alergiasInput').value.split(',').map(a => a.trim()).filter(a => a.length > 0);
+    const ingredientesEnCasa = document.getElementById('despensaInput').value.split(',').map(i => i.trim()).filter(i => i.length > 0);
 
     document.getElementById('resultados').style.display = 'none';
     document.getElementById('loader').style.display = 'block';
@@ -181,9 +196,11 @@ async function pedirMenu() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 prompt_usuario: prompt,
+                num_personas: Number.isFinite(numPersonas) && numPersonas > 0 ? numPersonas : 2,
                 tipo_dieta: dieta,
                 alergias: alergias,
-                objetivo: objetivo
+                objetivo: objetivo,
+                ingredientes_en_casa: ingredientesEnCasa
             })
         });
 
@@ -216,6 +233,29 @@ function renderizarMenu(data) {
             <div class="plato-desc">${dia.descripcion}</div>
         </div>
     `).join('');
+
+    const metaDiv = document.getElementById('ingredientes-meta');
+    const ingredientes = Array.isArray(data.ingredientes_limpios) ? data.ingredientes_limpios : [];
+    const excluidos = Array.isArray(data.ingredientes_excluidos_despensa) ? data.ingredientes_excluidos_despensa : [];
+    const personas = data.num_personas || 2;
+
+    if (ingredientes.length > 0 || excluidos.length > 0) {
+        const topIngredientes = ingredientes.slice(0, 14).map(i => {
+            if (typeof i === 'string') return `<li>${i}</li>`;
+            const frecuenciaTxt = i.frecuencia_menu ? ` (${i.frecuencia_menu} usos)` : '';
+            return `<li><strong>${i.nombre}</strong>: ${i.cantidad ?? '-'}${frecuenciaTxt}</li>`;
+        }).join('');
+
+        metaDiv.innerHTML = `
+            <h4>🧾 Resumen de Compra (${personas} persona${personas > 1 ? 's' : ''})</h4>
+            ${ingredientes.length > 0 ? `<ul>${topIngredientes}</ul>` : '<p style="margin:0;">No hay ingredientes calculados.</p>'}
+            ${excluidos.length > 0 ? `<p style="margin:10px 0 0 0; color:#2d6a4f;"><strong>✅ Excluidos por despensa:</strong> ${excluidos.join(', ')}</p>` : ''}
+        `;
+        metaDiv.style.display = 'block';
+    } else {
+        metaDiv.style.display = 'none';
+        metaDiv.innerHTML = '';
+    }
 
     const comp = data.comparativa;
     const banner = document.getElementById('winner-banner');

@@ -6,17 +6,17 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from sentence_transformers import SentenceTransformer
 
-# --- CONFIGURACIÓN CORREGIDA PARA WINDOWS ---
+# --- CONFIGURACIÓN ---
 DB_USER = os.getenv('DB_USER', 'root')
 DB_PASS = os.getenv('DB_PASS', 'password_segura') 
 
-# Usamos 'localhost' para que funcione desde tu terminal
-DB_HOST = 'localhost' 
+# En Docker Compose debe ser 'db-tiendas'; en local puede ser 'localhost'.
+DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_NAME = os.getenv('DB_NAME', 'precios_comparados')
 DB_URL = f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
 
-# Usamos 'localhost' para Qdrant también
-QDRANT_HOST = 'localhost'
+# En Docker Compose debe ser 'vector-db'; en local puede ser 'localhost'.
+QDRANT_HOST = os.getenv('QDRANT_HOST', 'localhost')
 QDRANT_PORT = 6333
 COLLECTION_NAME = "productos_supermercado"
 

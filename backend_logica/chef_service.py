@@ -10,6 +10,43 @@ api_key = os.getenv("GOOGLE_API_KEY")
 if api_key:
     genai.configure(api_key=api_key)
 
+def estimar_cantidad_base(ingrediente: str) -> int:
+    """
+    Cantidad base por uso (aprox.) para 1 persona.
+    Regla simple para tener una cesta más realista sin depender de nutrición avanzada.
+    """
+    ing = ingrediente.lower().strip()
+
+    if any(x in ing for x in ["pollo", "pavo", "ternera", "cerdo", "atun", "salmon", "merluza", "pescado", "tofu"]):
+        return 150  # g
+    if any(x in ing for x in ["arroz", "pasta", "lenteja", "garbanzo", "alubia", "quinoa"]):
+        return 80  # g
+    if any(x in ing for x in ["tomate", "cebolla", "zanahoria", "calabacin", "pimiento", "brocoli", "verdura"]):
+        return 120  # g
+    if any(x in ing for x in ["patata", "boniato"]):
+        return 180  # g
+    if any(x in ing for x in ["huevo"]):
+        return 1  # ud
+    if any(x in ing for x in ["leche", "bebida"]):
+        return 250  # ml
+    if any(x in ing for x in ["aceite"]):
+        return 15  # ml
+    if any(x in ing for x in ["sal", "pimenton", "especia", "vinagre"]):
+        return 5  # g/ml
+    if any(x in ing for x in ["pan"]):
+        return 80  # g
+    if any(x in ing for x in ["yogur"]):
+        return 1  # ud
+    if any(x in ing for x in ["manzana", "platano", "pera", "naranja", "aguacate"]):
+        return 1  # ud
+
+    return 1
+
+def estimar_cantidad_total(ingrediente: str, frecuencia: int, num_personas: int) -> int:
+    base = estimar_cantidad_base(ingrediente)
+    total = base * max(1, frecuencia) * max(1, num_personas)
+    return int(total)
+
 def generar_lista_desde_menu(prefs: dict):
     if not api_key:
         return {"error": "Falta configurar la API Key del Chef"}
@@ -91,6 +128,8 @@ REGLAS PARA LOS INGREDIENTES:
 4. Los ingredientes deben ser productos que se encuentren en un supermercado español.
 5. Varía los platos a lo largo de la semana.
 6. Asegúrate de que sea nutricionalmente equilibrado.
+7. Reutiliza ingredientes en varios platos de la semana para optimizar la compra (ej: un mismo arroz, verduras base, proteina base).
+8. Evita ingredientes hiper-específicos de un solo uso si hay alternativas equivalentes ya presentes en el menú.
 
 Responde SOLO con el JSON:"""
 
@@ -136,14 +175,20 @@ Responde SOLO con el JSON:"""
                                 "descripcion": f"Ingredientes: {', '.join(ingredientes_plato)}"
                             })
             
-            # Normalizar y eliminar duplicados
-            ingredientes_unicos = sorted(set(i.strip().lower() for i in todos_ingredientes if isinstance(i, str) and i.strip()))
-            
+            # Consolidación de ingredientes: preservamos frecuencia para estimar compra semanal
+            conteo_ingredientes = {}
+            for i in todos_ingredientes:
+                if isinstance(i, str) and i.strip():
+                    key = i.strip().lower()
+                    conteo_ingredientes[key] = conteo_ingredientes.get(key, 0) + 1
+
             ingredientes_clave = []
-            for ing in ingredientes_unicos:
+            for ing in sorted(conteo_ingredientes.keys()):
+                frecuencia = conteo_ingredientes.get(ing, 1)
                 ingredientes_clave.append({
                     "nombre": ing,
-                    "cantidad": 1 # Generico, la comparacion de precios ya lo normaliza o usa el mínimo.
+                    "cantidad": estimar_cantidad_total(ing, frecuencia, int(prefs.get("num_personas", 2))),
+                    "frecuencia_menu": frecuencia
                 })
 
             resultado_final = {
