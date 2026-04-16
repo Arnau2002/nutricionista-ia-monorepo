@@ -65,9 +65,13 @@
     <div style="background: #fdfefe; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 20px; max-width: 800px; margin-left: auto; margin-right: auto;">
         <p style="margin-top:0; font-weight:bold; color: #2ecc71; text-align: center;">⚙️ Personalización del Menú</p>
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 120px;">
+            <div style="flex: 1; min-width: 100px;">
                 <label><strong>Personas:</strong></label>
                 <input type="number" id="numPersonasInput" min="1" max="12" value="2" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+            </div>
+            <div style="flex: 1; min-width: 100px;">
+                <label><strong>Días:</strong></label>
+                <input type="number" id="numDiasInput" min="1" max="14" value="7" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
             </div>
             <div style="flex: 1; min-width: 150px;">
                 <label><strong>Dieta:</strong></label>
@@ -75,7 +79,6 @@
                     <option value="Equilibrada">🥗 Equilibrada</option>
                     <option value="Vegana">🌱 Vegana</option>
                     <option value="Vegetariana">🥚 Vegetariana</option>
-                    <option value="Keto">🥩 Keto / Low Carb</option>
                     <option value="Sin Gluten">🌾 Sin Gluten</option>
                 </select>
             </div>
@@ -177,9 +180,10 @@ async function pedirMenu() {
 
     localStorage.setItem('ultimoPromptChef', prompt);
 
+    const numPersonas = parseInt(document.getElementById('numPersonasInput').value, 10);
+    const numDias = parseInt(document.getElementById('numDiasInput').value, 10);
     const dieta = document.getElementById('dietaSelect').value;
     const objetivo = document.getElementById('objetivoSelect').value;
-    const numPersonas = parseInt(document.getElementById('numPersonasInput').value || '2', 10);
     const alergias = document.getElementById('alergiasInput').value.split(',').map(a => a.trim()).filter(a => a.length > 0);
     const ingredientesEnCasa = document.getElementById('despensaInput').value.split(',').map(i => i.trim()).filter(i => i.length > 0);
 
@@ -197,6 +201,7 @@ async function pedirMenu() {
             body: JSON.stringify({ 
                 prompt_usuario: prompt,
                 num_personas: Number.isFinite(numPersonas) && numPersonas > 0 ? numPersonas : 2,
+                num_dias: Number.isFinite(numDias) && numDias > 0 ? numDias : 7,
                 tipo_dieta: dieta,
                 alergias: alergias,
                 objetivo: objetivo,
@@ -243,7 +248,7 @@ function renderizarMenu(data) {
         const topIngredientes = ingredientes.slice(0, 14).map(i => {
             if (typeof i === 'string') return `<li>${i}</li>`;
             const frecuenciaTxt = i.frecuencia_menu ? ` (${i.frecuencia_menu} usos)` : '';
-            return `<li><strong>${i.nombre}</strong>: ${i.cantidad ?? '-'}${frecuenciaTxt}</li>`;
+            return `<li><strong>${i.nombre}</strong>: ${i.cantidad ?? '-'}${i.unidad ?? ''}${frecuenciaTxt}</li>`;
         }).join('');
 
         metaDiv.innerHTML = `
@@ -355,6 +360,13 @@ function crearHtmlElemento(p, tienda, isMix = false) {
         
     const badgeHtml = isMix ? '<div style="font-size: 0.7em; background: #8e44ad; color: white; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 3px; font-weight: bold;">⭐ Lo más barato</div>' : '';
 
+    const multiHtml = (p.multiplicador && p.multiplicador > 1) 
+        ? `<span style="color:#e67e22; font-weight:900; font-size:1.15em; margin-right:4px;">${p.multiplicador}x</span>` 
+        : '';
+
+    const precioTotal = (p.multiplicador && p.multiplicador > 1) ? (p.precio * p.multiplicador).toFixed(2) : p.precio.toFixed(2);
+    const precioUnitarioMeta = (p.multiplicador && p.multiplicador > 1) ? ` <span style="font-size:0.85em; color:#999; margin-left:4px; font-weight:normal;">(${p.precio.toFixed(2)}€/ud)</span>` : '';
+
     return `
     <div class="prod-item" style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; height: 100%;">
         <img src="${imgUrl}" alt="${p.nombre}" 
@@ -362,9 +374,9 @@ function crearHtmlElemento(p, tienda, isMix = false) {
         
         <div style="flex: 1;">
             ${badgeHtml}
-            <span class="prod-name" style="display: block; font-weight: bold; font-size: 0.95em; color: #000; line-height:1.2;">${p.nombre}</span>
+            <span class="prod-name" style="display: block; font-weight: bold; font-size: 0.95em; color: #000; line-height:1.2;">${multiHtml}${p.nombre}</span>
             <span class="prod-meta" style="color: #666; font-size: 0.85em; display: flex; justify-content: space-between;">
-                <span style="${p.es_formato_grande ? 'color: #d35400; font-weight: bold;' : ''}">${p.precio.toFixed(2)}€</span>
+                <span style="${p.es_formato_grande ? 'color: #d35400; font-weight: bold;' : 'font-weight: bold;'}">${precioTotal}€${precioUnitarioMeta}</span>
                 <span style="color: #0984e3; font-weight: bold;">${p.precio_ref > 0 ? p.precio_ref.toFixed(2) + '€/' + p.unidad : ''}</span>
             </span>
             ${p.es_formato_grande ? '<div style="font-size: 0.7em; color: #d35400; font-weight: bold; margin-top: 2px;">⚠️ Formato Ahorro</div>' : ''}

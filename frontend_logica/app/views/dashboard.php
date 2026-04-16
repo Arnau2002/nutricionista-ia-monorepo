@@ -328,13 +328,20 @@ function crearHtmlDashboard(p, tienda) {
         ? p.imagen 
         : 'https://cdn-icons-png.flaticon.com/512/1147/1147931.png';
 
+    const multiHtml = (p.multiplicador && p.multiplicador > 1) 
+        ? `<span style="color:#e67e22; font-weight:900; font-size:1.1em; margin-right:4px;">${p.multiplicador}x</span>` 
+        : '';
+        
+    const precioTotal = (p.multiplicador && p.multiplicador > 1) ? (p.precio * p.multiplicador).toFixed(2) : p.precio.toFixed(2);
+    const precioUnitarioMeta = (p.multiplicador && p.multiplicador > 1) ? ` <span style="font-size:0.85em; color:#999; margin-left:4px; font-weight:normal;">(${p.precio.toFixed(2)}€/ud)</span>` : '';
+
     return `
     <div class="prod-item" style="display: flex; align-items: center; gap: 12px; height: 100%; border-bottom: 1px solid #eee; padding-bottom: 10px;">
         <img src="${imgUrl}" alt="${p.nombre}" 
              style="width: 50px; height: 50px; object-fit: contain; border-radius: 4px; border: 1px solid #ddd; background: white;">
         <div style="flex: 1;">
-            <span class="prod-name" style="font-size: 0.9em; line-height: 1.2;">${p.nombre}</span>
-            <span class="prod-meta" style="font-size: 0.8em;">${p.precio.toFixed(2)}€ / ${p.unidad}</span>
+            <span class="prod-name" style="font-size: 0.9em; line-height: 1.2; font-weight: bold;">${multiHtml}${p.nombre}</span>
+            <span class="prod-meta" style="font-size: 0.8em;"><strong>${precioTotal}€</strong>${precioUnitarioMeta}</span>
         </div>
     </div>
     `;
@@ -352,13 +359,19 @@ function renderColumnaLegacy(cesta, container, isMercadona) {
             ? p.imagen 
             : 'https://cdn-icons-png.flaticon.com/512/1147/1147931.png';
 
+        const multiHtml = (p.multiplicador && p.multiplicador > 1) 
+            ? `<span style="color:#e67e22; font-weight:900; font-size:1.1em; margin-right:4px;">${p.multiplicador}x</span>` 
+            : '';
+
+        const precioTotal = (p.multiplicador && p.multiplicador > 1) ? (p.precio * p.multiplicador).toFixed(2) : p.precio.toFixed(2);
+
         return `
         <div class="prod-item" style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
             <img src="${imgUrl}" alt="${p.nombre}" 
                  style="width: 45px; height: 45px; object-fit: contain; border-radius: 4px; border: 1px solid #ddd; background: white;">
             <div style="flex: 1;">
-                <span class="prod-name" style="font-size: 0.9em; font-weight: bold;">${p.nombre}</span>
-                <span class="prod-meta" style="font-size: 0.8em; color: #666; display: block;">${p.precio.toFixed(2)}€</span>
+                <span class="prod-name" style="font-size: 0.9em; font-weight: bold;">${multiHtml}${p.nombre}</span>
+                <span class="prod-meta" style="font-size: 0.8em; color: #666; display: block;">${precioTotal}€</span>
             </div>
         </div>
         `;

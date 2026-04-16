@@ -2,6 +2,7 @@ import os
 import unicodedata
 import statistics
 import re 
+import math
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -60,6 +61,7 @@ class MenuRequest(BaseModel):
     prompt: str = "" # Hacemos opcional el prompt si enviamos preferencias, pero de momento conservamos por compati.
     prompt_usuario: Optional[str] = ""
     num_personas: Optional[int] = 2
+    num_dias: Optional[int] = 7
     tipo_dieta: Optional[str] = "omnívora"
     intolerancias: Optional[List[str]] = []
     alergias: Optional[List[str]] = []
@@ -78,139 +80,7 @@ class ComparativaFinal(BaseModel):
     mensaje_ahorro: str = ""
     comparativa_completa: bool = True
 
-# Configuración Semántica básica
-CONTEXTO_SEMANTICO = {
-    "pollo": "pechuga pollo entera",
-    "pavo": "pechuga pavo",
-    "ternera": "carne ternera",
-    "cerdo": "lomo cerdo",
-    "atun": "atun claro aceite",
-    "salmon": "salmon lomo",
-    "leche": "leche entera",
-    "queso": "queso tierno",
-    "yogur": "yogur natural",
-    "huevo": "huevos docena",
-    "pan": "pan de barra",
-    "aceite": "aceite oliva virgen",
-    "vinagre": "vinagre vino",
-    "pasta": "macarrones",
-    "lenteja": "lentejas pardinas",
-    "garbanzo": "garbanzos cocidos",
-    "alubia": "alubias blancas",
-    "cebolla": "cebolla malla",
-    "tomate": "tomate rama",
-    "ajo": "ajo morado",
-    "alga nori": "algas sushi nori",
-    "edamame": "edamame congelado",
-    "aguacate": "aguacate pieza",
-    "azucar": "azucar blanco 1kg",
-    "vinagre de arroz": "vinagre arroz sushi",
-    "pimenton": "pimenton dulce",
-    "sal": "sal fina",
-    "merluza": "lomo merluza fresco",
-    "platano": "platano canarias",
-    "tofu": "tofu firme estilo japones",
-    "nuez": "nuez pelada frutos secos",
-    "manzana": "manzana golden"
-}
-
-# Palabras a ignorar en la búsqueda
-PALABRAS_A_IGNORAR = [
-    "maduro", "maduros", "fresco", "fresca", "frescas", "frescos", "natural", "naturales",
-    "de grano completo", "tipo", "estilo", "casero", "casera", "selección",
-    "premium", "gourmet", "bio", "eco", "orgánico", "sano", "healthy",
-    "un kilo de", "una docena de", "medio kilo de", "litro de", "un bote de", "un paquete de",
-    "un", "una", "de", "con", "el", "la", "en", "para", "del", "las", "los",
-    "pardina", "castellana", "pelado", "pelada", "entero", "entera", "troceado", "picada",
-    "cocido", "cocida", "en bote", "en conserva", "lavada", "cortada", "limpio", "limpia",
-    "marca", "blanca", "hacendado", "dia", "calidad", "extra", "superior", "especial",
-    "variado", "mixto", "mezcla", "sabor", "congelado", "congelada", "ultracongelado",
-    "fuego", "lento", "receta", "tradicional", "abuela", "artesano", "artesana",
-    "virgen", "dulce", "ahumado", "picatostes", "tostado"
-]
-
-PALABRAS_PROHIBIDAS_GLOBAL = [
-    "kinder", "juguete", "sorpresa", "corporal", "hidratante", "champú", "mascota", "colonia",
-    "pate", "pateo", "crema de", "sobrasada", "mousse", "pienso", "comida para", "suplemento",
-    "deliplus", "bosque verde", "baby smile", "fresco y limpio", "cosmetica", "limpieza", 
-    "perfumeria", "detergente", "suavizante", "lavavajillas", "servilleta", "papel higienico",
-    "algarrobo", "protector solar", "solar", "depilatoria", "limpiadora", "capilar", "facial", 
-    "bocal", "dentifrico", "hidratante", "corporal", "enjuague", "cepillo", "gel de baño"
-]
-
-CATEGORIAS_PROHIBIDAS = [
-    # General & Mercadona
-    "cosmetica", "perfumeria", "higiene", "cuidado corporal", "facial", "maquillaje", 
-    "limpieza", "hogar", "mascotas", "fitoterapia", "parafarmacia", "bebe",
-    "detergente", "suavizante", "lavavajillas", "insecticida", "ambientador",
-    "bolsas de basura", "pilas", "bombillas", "celulosa", "papel higienico",
-    # Rutas específicas de Dia (URL patterns)
-    "limpieza-y-hogar", "perfumeria-higiene-salud", "mascotas", "bebe"
-]
-
-# Configuración de precios y formatos
-UMBRAL_PRECIO_NORMAL = 15.0 
-MAX_PENALIZACION_FORMATO = 5.0 
-
-# Palabras que DEBEN estar si están en la query
-OBLIGATORIAS_GLOBAL = ["leche", "vino", "aceite", "vinagre", "huevo", "pan", "harina", "queso", "yogur"]
-
-# DICCIONARIOS DE SUSTITUCIÓN Y LIMPIEZA
-# Proteínas
-PROTEINAS_PESCADO = ["atun", "salmon", "merluza", "bacalao", "gambas", "langostinos", "pescado", "sepia", "calamar"]
-PROTEINAS_CARNE = ["pollo", "pavo", "cerdo", "ternera", "vaca", "buey", "cordero", "conejo", "lomo", "hamburguesa"]
-PROTEINAS_CRÍTICAS = PROTEINAS_PESCADO + PROTEINAS_CARNE
-
-# Mapeo de categorías para priorización
-MAPEO_CATEGORIAS = {
-    # Proteínas
-    "pollo": ["Carniceria", "Aves", "Pollo", "/carnes/pollo/", "aves-y-pollo"],
-    "pavo": ["Carniceria", "Aves", "Pavo", "/carnes/pavo/"],
-    "ternera": ["Carniceria", "Vacuno", "/carnes/vacuno/", "vacuno"],
-    "cerdo": ["Carniceria", "Cerdo", "/carnes/cerdo/", "cerdo"],
-    "lomo": ["Carniceria", "Cerdo", "/charcuteria-y-quesos/lomo/"],
-    "pescado": ["Pescaderia", "Pescado", "/pescados-y-mariscos/"],
-    "merluza": ["Pescaderia", "Pescado", "merluza-y-bacalao"],
-    
-    # Básicos
-    "leche": ["Lacteos", "Leche", "/huevos-leche-y-mantequilla/leche/"],
-    "huevo": ["Huevos", "/huevos-leche-y-mantequilla/huevos/"],
-    "aceite": ["Aceite", "Vinagre", "Sal", "Alacena", "Despensa", "/aceites-salsas-y-especias/aceites/"],
-    "vinagre": ["Aceite", "Vinagre", "/aceites-salsas-y-especias/vinagres-y-alinos/"],
-    "arroz": ["Arroz", "Legumbres", "Pasta", "/arroz-pastas-y-legumbres/arroz/"],
-    "pasta": ["Pasta", "Arroz", "/arroz-pastas-y-legumbres/pastas/"],
-    "macarron": ["Pasta", "macarron"],
-    "garbanzo": ["Legumbres", "Conservas", "/arroz-pastas-y-legumbres/garbanzos/", "garbanzos-y-alubias"],
-    "lenteja": ["Legumbres", "Conservas", "/arroz-pastas-y-legumbres/lentejas/", "garbanzos-y-alubias"],
-    "alubia": ["Legumbres", "Conservas", "/arroz-pastas-y-legumbres/alubias/", "garbanzos-y-alubias"],
-    
-    # Vegetales
-    "verdura": ["Verdura", "Fruta", "/verduras/"],
-    "patata": ["Fruta", "Verdura", "Tubercu", "patatas-y-zanahorias"],
-    "tomate": ["Fruta", "Verdura", "/verduras/tomates"],
-    "cebolla": ["Fruta", "Verdura", "ajos-cebollas-y-puerros"],
-    "ajo": ["ajos-cebollas-y-puerros"],
-    
-    # Despensa
-    "atun": ["Conservas", "Pescado", "atun-bonito-y-caballa"],
-    "pan": ["Panaderia", "Horno", "/panes-harinas-y-masas/"],
-    "alga": ["Sushi", "Mundo", "Internacional", "algas"],
-    "edamame": ["Congelados", "Verdura", "soja"],
-    "aguacate": ["Fruta", "Verdura", "Tropical"],
-    "pimenton": ["Especias", "Aceite", "Alacena", "Condimentos"],
-    "sal": ["Especias", "Alacena", "Condimentos", "Sal"],
-    "especias": ["Especias", "Condimentos"]
-}
-
-MAPEO_ALERGIAS = {
-    "marisco": ["mejillon", "gamba", "langostino", "percebe", "calamar", "pulpo", "sepia", "marisco", "almeja", "berberecho", "ostra"],
-    "gluten": ["trigo", "harina", "pan", "pasta", "galleta", "bizcocho", "cebada", "centeno"],
-    "lactosa": ["leche", "queso", "yogur", "nata", "mantequilla", "lactico", "lactosa"],
-    "huevo": ["huevo"],
-    "frutos secos": ["nuez", "almendra", "avellana", "pistacho", "cacahuete", "anacardo"],
-    "soja": ["soja", "edamame"],
-    "pescado": ["pescado", "atun", "salmon", "merluza", "bacalao", "trucha", "sardina", "boqueron", "anchoa"]
-}
+from diccionarios_semanticos import *
 
 # HERRAMIENTAS 
 def normalizar(texto: str) -> str:
@@ -273,12 +143,42 @@ def filtrar_ingredientes_en_casa(lista_ingredientes: List[any], ingredientes_en_
 
     filtrados = []
     excluidos = []
+    
+    # Palabras que cambian totalmente el sentido del producto y evitan "falsos positivos" de despensa
+    # Ej: Si tengo "arroz" en casa, NO debo descartar el "vinagre de arroz" que pida la IA.
+    protectores = {"vinagre", "caldo", "harina", "bebida", "salsa", "crema", "lata", "bote", "coco", "almendra", "soja", "avena"}
+
     for ing in lista_ingredientes:
         nombre = ing.get("nombre", "") if isinstance(ing, dict) else str(ing)
-        if normalizar(nombre) in despensa:
+        nombre_norm = normalizar(nombre)
+        if not nombre_norm: continue
+        
+        nombre_tokens = set(nombre_norm.split())
+        excluir = False
+        
+        for desp_item in despensa:
+            desp_tokens = set(desp_item.split())
+            if not desp_tokens: continue
+            
+            # Caso 1: El usuario puso "aceite", la IA generó "aceite oliva" (desp_tokens es subconjunto de nombre_tokens)
+            if desp_tokens.issubset(nombre_tokens):
+                interseccion_proteccion = protectores.intersection(nombre_tokens)
+                # Si el ingrediente de la IA tiene una palabra protectora (ej. "vinagre") que NO puso el usuario (ej. solo puso "arroz")
+                if interseccion_proteccion and not interseccion_proteccion.intersection(desp_tokens):
+                    continue # Protegemos el artículo, no lo excluimos
+                excluir = True
+                break
+                
+            # Caso 2: El usuario puso "aceite de oliva extra", la IA generó "aceite" o "aceite oliva" (nombre_tokens es subconjunto)
+            if nombre_tokens.issubset(desp_tokens):
+                excluir = True
+                break
+
+        if excluir:
             excluidos.append(nombre)
         else:
             filtrados.append(ing)
+            
     return filtrados, excluidos
 
 # Lógica de Scoring
@@ -361,11 +261,23 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
                 category_boost = 0.35 # Subido ligeramente
                 break
 
-    # Penalización de ultra-procesados si se busca un básico
-    # Si buscamos un básico (pollo, carne, pescado) penalizamos ultra-procesados
-    procesados = ["nugget", "rebozado", "rebozada", "empanado", "empanada", "empanadilla", "masa", "varita", "sanjacobo", "preparado", "listo", "flamenquin", "croqueta", "relleno"]
-    if any(p in PROTEINAS_CRÍTICAS for p in query_tokens):
-        if any(proc in nombre_prod for proc in procesados):
+    # [BLOQUE MOVIDO] Las penalizaciones de procesados y fiambres ahora son globales y están al final (Filtro 9) para proteger carnes, verduras y legumbres por igual.
+            
+    # Evitar intercambio de animales (Ej: Si pide 'ternera', prohibir que matchee con 'cerdo', 'pavo' o pescados)
+    animales_conocidos = {"pollo", "pavo", "cerdo", "ternera", "vaca", "vacuno", "buey", "cordero", "conejo", 
+                          "panga", "abadejo", "mejillon", "gamba", "langostino", "merluza", "salmon", "atun", 
+                          "pescado", "sepia", "calamar", "pulpo", "lubina", "dorada", "bacalao", "trucha", "sardina"}
+    query_animales = set(query_tokens).intersection(animales_conocidos)
+    prod_animales = set(prod_tokens).intersection(animales_conocidos)
+    
+    # Agrupamos familias para no bloquear sinónimos válidos (ej. Mercadona dice ternera, Dia dice vacuno)
+    familia_bovina = {"ternera", "vaca", "vacuno", "buey"}
+    if query_animales.intersection(familia_bovina): query_animales.update(familia_bovina)
+    if prod_animales.intersection(familia_bovina): prod_animales.update(familia_bovina)
+    
+    if query_animales and prod_animales:
+        # Si el query pide un animal específico, y el producto tiene otro animal mencionado, pero NO el que pido:
+        if not query_animales.intersection(prod_animales):
             return 0.01 
 
     # 5. POSICIONAMIENTO
@@ -406,15 +318,50 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
     if len(extra_words) > 0:
         final_score -= (len(extra_words) * 0.04)
     
-    # Filtros anti-confusión
+    # Filtros anti-confusión Proteinas y Soja
     if any(p in PROTEINAS_PESCADO for p in query_tokens):
         if "ahumado" in prod_tokens or "carpaccio" in prod_tokens:
             final_score -= 0.3 
-        if any(w in ["conserva", "lata", "aceite"] for w in prod_tokens):
+        if any(w in ["conserva", "lata", "aceite", "escabeche"] for w in prod_tokens):
             final_score -= 0.2 
     if "edamame" in query_tokens or "soja" in query_tokens:
         if any(w in ["postre", "yogur", "texturizada", "bebida"] for w in prod_tokens):
             final_score -= 0.7
+
+    # 9. FILTRO GENÉRICO "FRESCO VS DERIVADO"
+    # Evita falsos positivos como mayonesa por ajo, o harina por garbanzos.
+    derivados = {"zumo", "nectar", "sabor", "helado", "caramelo", "bizcocho", "tarta", "mermelada", "salsa", "ketchup", "mayonesa", "mayo", "sorbete", "pure", "frito", "polvo", "rallado", "condimento", "aroma", "sirope", "gelatina", "extracto", "harina", "preparado", "bote", "lata", "brownie", "pastel", "galleta", "magdalena", "snack", "postre", "flan", "membrillo"}
+    procesados = {"nugget", "rebozado", "rebozada", "crunchy", "croqueta", "empanadilla", "empanado", "lonchas", "fiambre", "embutido", "pate", "salchicha", "chorizo", "morcilla", "salami", "pizza", "empanada", "lasaña"}
+    
+    # Si la query no solicita explícitamente un derivado o ultraprocesado...
+    if not any(d in query_tokens for d in derivados.union(procesados)):
+        if any(d in nombre_prod for d in derivados):
+            final_score -= 3.00 # ¡Ataque nuclear! Antes era -0.60 pero ciertos scores base subían a 2.0
+        if any(p in nombre_prod for p in procesados):
+            final_score -= 4.00 # Manda las empanadillas y los platos de chorizo a números negativos
+            
+    # 10. BLOQUEO INTER-BOTÁNICO Y ANIMAL EN LÁCTEOS
+    # Evita que buscar "bebida de soja" acabe matcheando "bebida de avena" o "leche desnatada"
+    botanicos = {"soja", "avena", "almendra", "arroz", "coco", "nuez", "avellana"}
+    tipo_vaca = {"entera", "desnatada", "semidesnatada", "vaca", "oveja", "cabra", "condensada"}
+    
+    q_veg = set(query_tokens).intersection(botanicos)
+    p_veg = set(prod_tokens).intersection(botanicos)
+    q_vaca = set(query_tokens).intersection(tipo_vaca)
+    p_vaca = set(prod_tokens).intersection(tipo_vaca)
+    
+    # 10a. Pide un vegetal y recibe otro distinto (Ej: Pide Almendra, recibe Soja)
+    if q_veg and p_veg and not q_veg.intersection(p_veg):
+        return 0.01 
+        
+    # 10b. Reglas Cruzadas Vaca vs Vegetal
+    if "leche" in query_tokens or "bebida" in query_tokens:
+        if q_veg and p_vaca: 
+            return 0.01 # Pide Vegetal, recibe Vaca
+        if q_vaca and p_veg: 
+            return 0.01 # Pide Vaca, recibe Vegetal
+        if (not q_veg) and p_veg:
+            final_score -= 5.0 # Pide Leche a secas, recibe Vegetal rara
 
     return final_score * multiplicador_match
 
@@ -425,12 +372,13 @@ def buscar_producto_inteligente(ingrediente: str, reintento_simple=False, alergi
     nombre_raw = ingrediente['nombre'] if isinstance(ingrediente, dict) else ingrediente
     ingrediente_limpio = limpiar_ingrediente_avanzado(nombre_raw)
     
-    # Si estamos en reintento, nos quedamos solo con la primera palabra (el núcleo)
+    # Si estamos en reintento, extraemos el sustantivo clave en lugar de ir a ciegas a por la primera palabra
     if reintento_simple:
         tokens = ingrediente_limpio.split()
         if tokens:
-            ingrediente_limpio = tokens[0]
-            print(f"⚠️ Reintento simple con núcleo: '{ingrediente_limpio}'")
+            nucleo_encontrado = next((t for t in tokens if t in OBLIGATORIAS_GLOBAL or t in PROTEINAS_CRÍTICAS), None)
+            ingrediente_limpio = nucleo_encontrado if nucleo_encontrado else tokens[0]
+            print(f"⚠️ Reintento inteligente detectó núcleo: '{ingrediente_limpio}'")
 
     # 2. Traducción Semántica
     # Intentamos primero singular, luego plural en el mapeo
@@ -560,7 +508,61 @@ def buscar_producto_inteligente(ingrediente: str, reintento_simple=False, alergi
 
     return {"mejor": ganador, "otras": perdedor}
 
-def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = None) -> dict:
+def calcular_unidades_a_comprar(target_qty, producto, ing_nombre=""):
+    if not producto: return 1
+    p_ref = producto.get('precio_ref', 0)
+    precio = producto.get('precio', 0)
+    unidad = producto.get('unidad', 'ud').lower()
+    
+    if p_ref <= 0.05 or target_qty <= 0:
+        return 1
+        
+    tamano_producto = precio / p_ref
+    
+    # Determinar si target_qty son Unidades o Gramos/Ml
+    ing_lower = ing_nombre.lower()
+    es_unidad = any(x in ing_lower for x in ["huevo", "yogur", "manzana", "platano", "pera", "naranja", "aguacate", "tostada"])
+    
+    target = float(target_qty)
+    
+    try:
+        if es_unidad:
+            if unidad in ['kg', 'kilo', 'l', 'litro']:
+                necesidad_eq = target * 0.150 # 150g por pieza aprox
+            elif '100' in unidad:
+                necesidad_eq = target * 1.5
+            elif unidad in ['docena', 'dc']:
+                necesidad_eq = target / 12.0
+            else:
+                necesidad_eq = target
+        else:
+            if unidad in ['kg', 'kilo', 'l', 'litro']:
+                necesidad_eq = target / 1000.0
+            elif '100' in unidad:
+                necesidad_eq = target / 100.0
+            elif unidad in ['docena', 'dc']:
+                necesidad_eq = (target / 50.0) / 12.0 
+            else:
+                # El súper vende uds, y tú pides gramos (ej. 10g de perejil, o 2kg de cebolla)
+                if "ajo" in ing_lower:
+                    peso_unidad = 50.0 # 50g cabeza
+                elif any(x in ing_lower for x in ["sal", "especia", "oregano", "perejil", "laurel"]):
+                    peso_unidad = 20.0 # botecito pequeño 20g
+                elif "cebolla" in ing_lower or "calabacin" in ing_lower or "pimiento" in ing_lower:
+                    peso_unidad = 200.0 
+                else:
+                    peso_unidad = 150.0 
+                
+                necesidad_eq = target / peso_unidad
+                
+        unidades = math.ceil(necesidad_eq / tamano_producto)
+        return max(1, unidades)
+    except:
+        return 1
+
+import asyncio
+
+async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = None) -> dict:
     cesta_m = {"total": 0.0, "items": [], "missing": []}
     cesta_d = {"total": 0.0, "items": [], "missing": []}
     
@@ -593,11 +595,19 @@ def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = None) 
     
     ingredientes_finales = list(dict_consolidado.values())
 
-    for i_data in ingredientes_finales:
+    print(f"🚀 Lanzando búsqueda multi-hilo para {len(ingredientes_finales)} ingredientes únicos...")
+    loop = asyncio.get_event_loop()
+    
+    # Disparar búsquedas concurrentes en Qdrant (ahorro bestial de tiempo I/O)
+    tareas = [
+        loop.run_in_executor(None, buscar_producto_inteligente, i_data['nombre'], False, alergias)
+        for i_data in ingredientes_finales
+    ]
+    resultados_busqueda = await asyncio.gather(*tareas)
+
+    for i_data, res in zip(ingredientes_finales, resultados_busqueda):
         ing_nombre = i_data['nombre']
-        print(f"📦 Procesando ingrediente: '{ing_nombre}'")
         target_qty = i_data['cantidad']
-        res = buscar_producto_inteligente(ing_nombre, alergias=alergias)
         
         best_m = None
         best_d = None
@@ -610,23 +620,27 @@ def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = None) 
 
         # Lógica de asignación a cestas (Limpia)
         if best_m:
+            unidades_m = calcular_unidades_a_comprar(target_qty, best_m, ing_nombre)
+            best_m["multiplicador"] = unidades_m
             cesta_m["items"].append(best_m)
-            cesta_m["total"] += best_m["precio"]
-            comp_m += local_comp_price(best_m, target_qty)
+            cesta_m["total"] += best_m["precio"] * unidades_m
+            comp_m += local_comp_price(best_m, target_qty) * unidades_m
         else:
             cesta_m["missing"].append(ing_nombre)
 
         if best_d:
+            unidades_d = calcular_unidades_a_comprar(target_qty, best_d, ing_nombre)
+            best_d["multiplicador"] = unidades_d
             cesta_d["items"].append(best_d)
-            cesta_d["total"] += best_d["precio"]
-            comp_d += local_comp_price(best_d, target_qty)
+            cesta_d["total"] += best_d["precio"] * unidades_d
+            comp_d += local_comp_price(best_d, target_qty) * unidades_d
         else:
             cesta_d["missing"].append(ing_nombre)
 
         # Si están en ambos, los sumamos a la comparativa justa para el cálculo de ahorro
         if best_m and best_d:
-            comparativa_justa_m += best_m["precio"]
-            comparativa_justa_d += best_d["precio"]
+            comparativa_justa_m += best_m["precio"] * unidades_m
+            comparativa_justa_d += best_d["precio"] * unidades_d
             items_comunes_count += 1
             
         # Guardar fila para alineación UI (sin deduplicar todavía)
@@ -763,40 +777,20 @@ async def planificar_menu(req: MenuRequest):
         prompt_usuario = (req.prompt_usuario or req.prompt or "").strip()
         num_personas = max(1, int(req.num_personas or 2))
 
-        # Caso especial Sushi (Mock)
-        prompt_min = prompt_usuario.lower()
-        if "sushi" in prompt_min:
-            resultado_chef = {
-                "menu_pensado": [
-                    {"dia": "Cena", "plato": "Sushi Variado", "descripcion": "Makis de salmon y atun con aguacate, alga nori y edamame de acompañamiento."}
-                ],
-                "ingredientes_clave": [
-                    {"nombre": "Arroz redondo", "cantidad": 200},
-                    {"nombre": "Salmon", "cantidad": 150},
-                    {"nombre": "Atun", "cantidad": 150},
-                    {"nombre": "Aguacate", "cantidad": 1},
-                    {"nombre": "Alga Nori", "cantidad": 5},
-                    {"nombre": "Vinagre de arroz", "cantidad": 50},
-                    {"nombre": "Azucar", "cantidad": 10},
-                    {"nombre": "Pepino", "cantidad": 1},
-                    {"nombre": "Edamame", "cantidad": 100},
-                    {"nombre": "Salsa de soja", "cantidad": 30}
-                ]
+        resultado_chef = generar_lista_desde_menu(
+            prefs={
+                "prompt_usuario": prompt_usuario,
+                "num_personas": num_personas,
+                "tipo_dieta": req.tipo_dieta,
+                "intolerancias": req.intolerancias,
+                "alergias": req.alergias,
+                "no_me_gusta": req.no_me_gusta,
+                "me_gusta": req.me_gusta,
+                "objetivo": req.objetivo,
+                "incluir_snacks": req.incluir_snacks,
+                "num_dias": req.num_dias
             }
-        else:
-            resultado_chef = generar_lista_desde_menu(
-                prefs={
-                    "prompt_usuario": prompt_usuario,
-                    "num_personas": num_personas,
-                    "tipo_dieta": req.tipo_dieta,
-                    "intolerancias": req.intolerancias,
-                    "alergias": req.alergias,
-                    "no_me_gusta": req.no_me_gusta,
-                    "me_gusta": req.me_gusta,
-                    "objetivo": req.objetivo,
-                    "incluir_snacks": req.incluir_snacks
-                }
-            )
+        )
         
         if "error" in resultado_chef:
             return {"error": resultado_chef["error"]}
@@ -808,7 +802,12 @@ async def planificar_menu(req: MenuRequest):
             req.ingredientes_en_casa
         )
         
-        comparativa = procesar_lista_compra(ingredientes_filtrados, alergias=req.alergias)
+        # Si la dieta es estrictamente Sin Gluten, inyectamos la alergia matemáticamente
+        alergias_activas = req.alergias or []
+        if req.tipo_dieta and "gluten" in req.tipo_dieta.lower() and "gluten" not in [a.lower() for a in alergias_activas]:
+            alergias_activas.append("gluten")
+        
+        comparativa = await procesar_lista_compra(ingredientes_filtrados, alergias=alergias_activas)
         
         return {
             "menu": resultado_chef.get("menu_pensado", []),
