@@ -19,8 +19,8 @@ def estimar_cantidad_base(ingrediente: str) -> tuple[int, str]:
         return 150, "g"
     if any(x in ing for x in ["arroz", "pasta", "lenteja", "garbanzo", "alubia", "quinoa"]):
         return 80, "g"
-    if any(x in ing for x in ["tomate", "cebolla", "zanahoria", "calabacin", "pimiento", "brocoli", "verdura", "lechuga", "espinaca", "champiñon", "seta"]):
-        return 120, "g"
+    if any(x in ing for x in ["tomate", "cebolla", "zanahoria", "calabacin", "pimiento", "brocoli", "verdura", "lechuga", "espinaca", "champiñon", "seta", "berenjena", "pepino"]):
+        return 150, "g"
     if any(x in ing for x in ["patata", "boniato"]):
         return 180, "g"
     if any(x in ing for x in ["huevo"]):
@@ -29,10 +29,14 @@ def estimar_cantidad_base(ingrediente: str) -> tuple[int, str]:
         return 250, "ml"
     if any(x in ing for x in ["aceite", "vinagre", "salsa", "soja"]):
         return 15, "ml"
-    if any(x in ing for x in ["sal", "pimenton", "especia", "oregano", "canela", "pimienta", "perejil", "ajo", "laurel", "romero", "avena", "harina", "azucar"]):
-        return 5, "g"
+    if any(x in ing for x in ["avena", "flakes", "cereales"]):
+        return 40, "g"
+    if any(x in ing for x in ["sal", "especia", "oregano", "canela", "pimienta", "perejil", "ajo", "laurel", "romero", "pimenton"]):
+        return 1, "g"
     if any(x in ing for x in ["pan", "tostada"]):
-        return 80, "g"
+        return 50, "g"
+    if any(x in ing for x in ["harina", "azucar", "miel"]):
+        return 10, "g"
     if any(x in ing for x in ["yogur"]):
         return 1, "ud"
     if any(x in ing for x in ["manzana", "platano", "pera", "naranja", "aguacate", "kiwi", "limon"]):
@@ -119,16 +123,14 @@ El JSON debe tener esta estructura exacta:
 }}
 
 REGLAS PARA LOS INGREDIENTES:
-1. Usa nombres genéricos de producto (ej: "leche entera", "pechuga de pollo", "arroz", "tomate")
+1. Usa nombres genéricos de producto en SINGULAR (ej: "leche entera", "pechuga de pollo", "arroz", "tomate").
 2. NO incluyas marcas comerciales.
 3. Los ingredientes deben ser productos que se encuentren en un supermercado español.
-4. Varía los platos a lo largo de la semana.
-5. Asegúrate de que sea nutricionalmente equilibrado.
-6. Reutiliza ingredientes en varios platos de la semana para optimizar la compra (ej: un mismo arroz, verduras base, proteina base).
-7. Evita ingredientes hiper-específicos de un solo uso si hay alternativas equivalentes ya presentes en el menú.
-8. NO seas tan creativo con la creación de los menús, hazlos más generales y típicos. Tampoco que siempre sean los mismos.
-
-Responde SOLO con el JSON:"""
+4. Varía los platos a lo largo de la semana, pero REUTILIZA al máximo los ingredientes base (ej. usa el mismo tipo de tomate, cebolla y proteína para varios platos si es posible).
+5. Minimiza el número total de ingredientes únicos en la lista de la compra semanal para maximizar el ahorro y evitar desperdicio.
+6. EVITA sufijos descriptivos innecesarios (ej. no pongas "tomate maduro" o "tomate rojo" si con "tomate" basta).
+7. NO inventes nombres ni añadidas letras extra (ej. nunca pongas "garbanzoss" o "lentejass").
+8. Responde EXCLUSIVAMENTE con el JSON:"""
 
     for nombre_modelo in modelos_a_probar:
         try:
@@ -184,7 +186,32 @@ Responde SOLO con el JSON:"""
             conteo_ingredientes = {}
             for i in todos_ingredientes:
                 if isinstance(i, str) and i.strip():
-                    key = i.strip().lower()
+                    raw = i.strip().lower()
+                    # Normalización agresiva para consolidación
+                    limpieza = [" cocido", " cocida", " blanco", " blanca", " maduro", " madura", " fresco", " fresca", " en polvo", " molido", " molida", " seco", " seca", " troceado", " troceada"]
+                    key = raw
+                    for palabra in limpieza:
+                        key = key.replace(palabra, "")
+                    
+                    # Corrección de plurales y errores de la IA (lentejass -> lenteja)
+                    key = raw.strip()
+                    if key.endswith('ss'): key = key[:-2]
+                    elif key.endswith('s') and not key.endswith('es') and key != "arroz":
+                        key = key.rstrip('s')
+                    
+                    # Mapeos específicos de unificación y corrección de raíces
+                    mapeo_unificar = {
+                        "lenteja": "lentejas",
+                        "garbanzo": "garbanzos",
+                        "huevo": "huevos",
+                        "aceituna": "aceitunas",
+                        "nuece": "nueces",
+                        "nuez": "nueces",
+                        "platano": "platano",
+                        "arroz": "arroz"
+                    }
+                    key = mapeo_unificar.get(key, key)
+                    
                     conteo_ingredientes[key] = conteo_ingredientes.get(key, 0) + 1
 
             ingredientes_clave = []

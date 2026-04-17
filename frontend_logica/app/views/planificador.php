@@ -245,7 +245,7 @@ function renderizarMenu(data) {
     const personas = data.num_personas || 2;
 
     if (ingredientes.length > 0 || excluidos.length > 0) {
-        const topIngredientes = ingredientes.slice(0, 14).map(i => {
+        const topIngredientes = ingredientes.map(i => {
             if (typeof i === 'string') return `<li>${i}</li>`;
             const frecuenciaTxt = i.frecuencia_menu ? ` (${i.frecuencia_menu} usos)` : '';
             return `<li><strong>${i.nombre}</strong>: ${i.cantidad ?? '-'}${i.unidad ?? ''}${frecuenciaTxt}</li>`;

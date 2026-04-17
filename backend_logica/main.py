@@ -208,13 +208,24 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
     
     if not query_tokens or not prod_tokens: return 0.0
 
+    # Expansión de sinónimos Multi-Supermercado (Eje: Dia vs Mercadona)
+    # Buscamos coincidencias de texto completo también.
+    query_tokens_extendidos = list(query_tokens)
+    query_join = " ".join(query_tokens)
+    for sin_key, sin_list in SINONIMOS_PRODUCTOS.items():
+        if sin_key in query_join:
+            for sin in sin_list:
+                query_tokens_extendidos.extend(tokenizar(sin))
+                
+    query_tokens = query_tokens_extendidos
     q_set = set(query_tokens)
     p_set = set(prod_tokens)
     
-    # Match Robusto: Palabras obligatorias
+    # Match Robusto: Palabras obligatorias (Flexibilidad con plurales)
     for ob in OBLIGATORIAS_GLOBAL:
-        if ob in q_set and ob not in p_set:
-            return 0.0
+        if ob in q_set:
+            if not any(ob == p_t.rstrip('s') or ob == p_t.rstrip('es') or ob == p_t for p_t in prod_tokens):
+                return 0.0
 
     match_absoluto = False
     for q_t in query_tokens:
@@ -282,14 +293,13 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
 
     # 5. POSICIONAMIENTO
     pos_score = 0.0
-    try:
-        idx = prod_tokens.index(query_tokens[0])
-        if idx == 0: pos_score = 1.0       
-        elif idx == 1: pos_score = 0.8     
-        elif idx == 2: pos_score = 0.3     
-        else: pos_score = 0.1
-    except ValueError:
-        pos_score = 0.0
+    for i, p_t in enumerate(prod_tokens):
+        if p_t in query_tokens:
+            if i == 0: pos_score = 1.0       
+            elif i == 1: pos_score = 0.8     
+            elif i == 2: pos_score = 0.3     
+            else: pos_score = 0.1
+            break
 
     score_vector = producto['score_original']
     
@@ -301,16 +311,16 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
         final_score += 0.15 
 
     # Boost para productos básicos
-    BASIKOS = ["pepino", "tomate", "cebolla", "patata", "aguacate", "huevo", "leche", "arroz", "atun", "alga", "edamame", "azucar", "lechuga", "ajo", "garbanzo", "lenteja", "alubia", "carne", "cerdo", "ternera", "merluza", "pimenton", "sal"]
+    BASIKOS = ["pepino", "tomate", "cebolla", "patata", "aguacate", "huevo", "leche", "arroz", "atun", "alga", "edamame", "azucar", "lechuga", "ajo", "garbanzo", "lenteja", "alubia", "carne", "cerdo", "ternera", "merluza", "pimenton", "sal", "espinaca", "platano", "zanahoria"]
     if any(any(b in t or t in b for t in query_tokens) for b in BASIKOS):
         # El bono solo se aplica si realmente hay un match con el básico
         for b in BASIKOS:
             if any(b in t or t in b for t in query_tokens) and any(b in t for t in prod_tokens):
                 final_score += 0.55 
-                if prod_tokens[0] == b:
+                if prod_tokens[0] == b or (len(prod_tokens) > 1 and prod_tokens[1] == b):
                     final_score += 0.25
                 # Bono extra para leches y especias para asegurar que no se pierdan
-                if b in ["leche", "pimenton", "sal"]:
+                if b in ["leche", "pimenton", "sal", "platano", "atun"]:
                     final_score += 0.3
 
     # 8. PENALIZACIÓN POR EXCESO DE RUIDO
@@ -322,16 +332,21 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
     if any(p in PROTEINAS_PESCADO for p in query_tokens):
         if "ahumado" in prod_tokens or "carpaccio" in prod_tokens:
             final_score -= 0.3 
+        # Solo penalizamos conservas si el usuario especifica "fresco"
         if any(w in ["conserva", "lata", "aceite", "escabeche"] for w in prod_tokens):
-            final_score -= 0.2 
+            if any(w in query_tokens for w in ["fresco", "fresca", "frescos", "frescas"]):
+                final_score -= 2.0
+            else:
+                # Si no pide fresco, la conserva es aceptable pero con un ligero ajuste
+                final_score -= 0.05
     if "edamame" in query_tokens or "soja" in query_tokens:
         if any(w in ["postre", "yogur", "texturizada", "bebida"] for w in prod_tokens):
             final_score -= 0.7
 
     # 9. FILTRO GENÉRICO "FRESCO VS DERIVADO"
     # Evita falsos positivos como mayonesa por ajo, o harina por garbanzos.
-    derivados = {"zumo", "nectar", "sabor", "helado", "caramelo", "bizcocho", "tarta", "mermelada", "salsa", "ketchup", "mayonesa", "mayo", "sorbete", "pure", "frito", "polvo", "rallado", "condimento", "aroma", "sirope", "gelatina", "extracto", "harina", "preparado", "bote", "lata", "brownie", "pastel", "galleta", "magdalena", "snack", "postre", "flan", "membrillo"}
-    procesados = {"nugget", "rebozado", "rebozada", "crunchy", "croqueta", "empanadilla", "empanado", "lonchas", "fiambre", "embutido", "pate", "salchicha", "chorizo", "morcilla", "salami", "pizza", "empanada", "lasaña"}
+    derivados = {"zumo", "nectar", "sabor", "helado", "caramelo", "bizcocho", "tarta", "mermelada", "salsa", "ketchup", "mayonesa", "mayo", "sorbete", "pure", "frito", "polvo", "rallado", "condimento", "aroma", "sirope", "gelatina", "extracto", "harina", "preparado", "brownie", "pastel", "galleta", "magdalena", "snack", "postre", "flan", "membrillo", "chicle", "chuche", "golosina", "gragea", "moscada", "dulce de leche", "chili", "bifidus", "plato", "preparado", "sazonador", "encurtido", "banderilla", "vinagreta", "aliño", "untable", "relleno", "canelones", "lasaña", "alimento infantil", "papilla", "postre lacteo", "bolsa 90 g", "bolsa 100 g", "bolsa 110 g", "smileat", "hero", "nestle"}
+    procesados = {"nugget", "rebozado", "rebozada", "crunchy", "croqueta", "empanadilla", "empanado", "lonchas", "fiambre", "embutido", "pate", "salchicha", "chorizo", "morcilla", "salami", "pizza", "empanada", "lasaña", "canelones", "nuggets"}
     
     # Si la query no solicita explícitamente un derivado o ultraprocesado...
     if not any(d in query_tokens for d in derivados.union(procesados)):
@@ -340,9 +355,21 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
         if any(p in nombre_prod for p in procesados):
             final_score -= 4.00 # Manda las empanadillas y los platos de chorizo a números negativos
             
+    # 9b. PENALIZACIÓN ESPECÍFICA "FRESCO" VS "CONSERVA/LATA"
+    # Si pides algo 'fresco' (ej. espinacas frescas), penalizamos fuertemente conservas o latas.
+    if any(w in query_tokens for w in ["fresco", "fresca", "frescos", "frescas"]):
+        if any(w in prod_tokens for w in ["conserva", "lata", "frasco", "bote", "cristal"]):
+            final_score -= 2.5
+            
+    # 9c. ANTICONFUSIÓN QUESOS
+    if "queso" in query_tokens:
+        # Si el usuario no pide 'azul' explícitamente, penalizamos el queso azul por ser un sabor dominante/específico
+        if "azul" in prod_tokens and "azul" not in query_tokens:
+            final_score -= 1.5
+
     # 10. BLOQUEO INTER-BOTÁNICO Y ANIMAL EN LÁCTEOS
     # Evita que buscar "bebida de soja" acabe matcheando "bebida de avena" o "leche desnatada"
-    botanicos = {"soja", "avena", "almendra", "arroz", "coco", "nuez", "avellana"}
+    botanicos = {"soja", "avena", "almendra", "arroz", "coco", "nuez", "avellana", "bifidus"}
     tipo_vaca = {"entera", "desnatada", "semidesnatada", "vaca", "oveja", "cabra", "condensada"}
     
     q_veg = set(query_tokens).intersection(botanicos)
@@ -362,6 +389,18 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
             return 0.01 # Pide Vaca, recibe Vegetal
         if (not q_veg) and p_veg:
             final_score -= 5.0 # Pide Leche a secas, recibe Vegetal rara
+
+    # 11. VALIDACIÓN DE PALABRAS CLAVE OBLIGATORIAS (BURGOS, PICADA, NATURAL)
+    # Evita que 'queso fresco de burgos' matchee 'queso de untar' o que 'carne picada' matchee 'carne a tacos'
+    obligatorias_en_query = {"burgos", "picada", "natural", "integral", "rallado"}
+    for w in obligatorias_en_query:
+        if w in query_tokens and w not in prod_tokens:
+            final_score -= 1.5
+            
+    # 12. BLOQUEO ESPECIFICO PASTA VS SAZONADOR/PIÑONES
+    if "pasta" in query_tokens and not any(x in query_tokens for x in ["sazonador", "piñon"]):
+        if any(x in prod_tokens for x in ["sazonador", "piñon", "rellena"]):
+            final_score -= 2.0
 
     return final_score * multiplicador_match
 
@@ -386,18 +425,22 @@ def buscar_producto_inteligente(ingrediente: str, reintento_simple=False, alergi
     busqueda_vectorial = CONTEXTO_SEMANTICO.get(core_sin_s, 
                          CONTEXTO_SEMANTICO.get(ingrediente_limpio, ingrediente_limpio))
     
+    # Enriquecimiento dinámico para productos básicos (Pull Vectorial)
+    # Si es un básico (fruta, carne, legumbre), forzamos descriptores que los separen de yogures/purés
+    if any(b in busqueda_vectorial or b in ingrediente_limpio for b in ["platano", "tomate", "atun", "garbanzo", "lenteja", "pollo", "pavo", "merluza"]):
+        busqueda_vectorial += " natural fresco bolsa bote"
+    
     print(f"🔍 Buscando: '{ingrediente}' -> Vector: '{busqueda_vectorial}'")
 
     vector = model.encode(busqueda_vectorial).tolist()
     
-    # 3. Búsqueda Vectorial independiente por tienda
-    # Hacemos dos búsquedas separadas para garantizar que Dia no sea 'eclipsado' por Mercadona
-    # Subimos el límite para Mercadona (leche corporal, etc. suelen llenar los primeros resultados)
-    limit_m = 650 if "leche" in ingrediente_limpio else 300
+    # 3. Búsqueda Vectorial independiente por tienda (Aumentamos límites para Deep Search)
+    limit_m = 1000 if any(x in ingrediente_limpio for x in ["leche", "platano", "atun", "garbanzo", "nuez"]) else 500
+    limit_d = 700 if any(x in ingrediente_limpio for x in ["leche", "platano", "atun", "garbanzo", "nuez"]) else 400
     
     search_queries = [
         {"tienda": "Mercadona", "limit": limit_m},
-        {"tienda": "Dia", "limit": 400} 
+        {"tienda": "Dia", "limit": limit_d} 
     ]
     
     resultados_totales = []
@@ -521,7 +564,10 @@ def calcular_unidades_a_comprar(target_qty, producto, ing_nombre=""):
     
     # Determinar si target_qty son Unidades o Gramos/Ml
     ing_lower = ing_nombre.lower()
-    es_unidad = any(x in ing_lower for x in ["huevo", "yogur", "manzana", "platano", "pera", "naranja", "aguacate", "tostada"])
+    es_unidad = any(x in ing_lower for x in ["huevo", "yogur", "manzana", "platano", "pera", "naranja", "aguacate", "tostada"]) 
+    # v40: Si es Zumo o Bebida, NO es unidad (queremos tratarlo como volumen)
+    if any(x in ing_lower for x in ["zumo", "bebida", "leche", "caldo"]):
+        es_unidad = False
     
     target = float(target_qty)
     
@@ -553,6 +599,11 @@ def calcular_unidades_a_comprar(target_qty, producto, ing_nombre=""):
                 else:
                     peso_unidad = 150.0 
                 
+                # v40: Rendimiento de zumo (1L de zumo requiere aprox 2kg de naranjas)
+                # v40: Rendimiento de zumo (1L de zumo requiere aprox 2kg de naranjas)
+                if "zumo" in ing_lower and "naranja" in ing_lower:
+                    peso_unidad = 500.0 # Cada unidad de 1kg rinde solo 500ml de zumo real
+                
                 necesidad_eq = target / peso_unidad
                 
         unidades = math.ceil(necesidad_eq / tamano_producto)
@@ -575,7 +626,7 @@ async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = 
     comparativa_justa_m = 0.0
     comparativa_justa_d = 0.0
     items_comunes_count = 0
-    filas = []
+    filas_grouped = {} # Usaremos un dict para agrupar por (Prod_M, Prod_D)
 
     def local_comp_price(item, qty):
         if not item: return 0.0
@@ -619,58 +670,55 @@ async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = 
             elif res.get('otras'): best_d = next((x for x in res['otras'] if x['tienda'] == 'Dia'), None)
 
         # Lógica de asignación a cestas (Limpia)
+        units_m = 0
+        units_d = 0
+        
         if best_m:
-            unidades_m = calcular_unidades_a_comprar(target_qty, best_m, ing_nombre)
-            best_m["multiplicador"] = unidades_m
+            units_m = calcular_unidades_a_comprar(target_qty, best_m, ing_nombre)
+            best_m["multiplicador"] = units_m
             cesta_m["items"].append(best_m)
-            cesta_m["total"] += best_m["precio"] * unidades_m
-            comp_m += local_comp_price(best_m, target_qty) * unidades_m
+            cesta_m["total"] += best_m["precio"] * units_m
+            comp_m += local_comp_price(best_m, target_qty) * units_m
         else:
             cesta_m["missing"].append(ing_nombre)
 
         if best_d:
-            unidades_d = calcular_unidades_a_comprar(target_qty, best_d, ing_nombre)
-            best_d["multiplicador"] = unidades_d
+            units_d = calcular_unidades_a_comprar(target_qty, best_d, ing_nombre)
+            best_d["multiplicador"] = units_d
             cesta_d["items"].append(best_d)
-            cesta_d["total"] += best_d["precio"] * unidades_d
-            comp_d += local_comp_price(best_d, target_qty) * unidades_d
+            cesta_d["total"] += best_d["precio"] * units_d
+            comp_d += local_comp_price(best_d, target_qty) * units_d
         else:
             cesta_d["missing"].append(ing_nombre)
 
         # Si están en ambos, los sumamos a la comparativa justa para el cálculo de ahorro
         if best_m and best_d:
-            comparativa_justa_m += best_m["precio"] * unidades_m
-            comparativa_justa_d += best_d["precio"] * unidades_d
+            comparativa_justa_m += best_m["precio"] * units_m
+            comparativa_justa_d += best_d["precio"] * units_d
             items_comunes_count += 1
             
-        # Guardar fila para alineación UI (sin deduplicar todavía)
-        filas.append({
-            "ingrediente": ing_nombre,
-            "mercadona": best_m,
-            "dia": best_d
-        })
+        # [NUEVO] Agrupación por pareja de productos (Evita filas duplicadas en la tabla)
+        # Generamos una clave única basada en los nombres de los productos encontrados
+        key_group = (best_m["nombre"] if best_m else "None", best_d["nombre"] if best_d else "None")
+        
+        if key_group not in filas_grouped:
+            filas_grouped[key_group] = {
+                "ingrediente": ing_nombre.capitalize(),
+                "mercadona": best_m,
+                "dia": best_d
+            }
+        else:
+            # Si ya existe esta pareja de productos, sumamos los multiplicadores
+            if best_m and filas_grouped[key_group]["mercadona"]:
+                filas_grouped[key_group]["mercadona"]["multiplicador"] += units_m
+            if best_d and filas_grouped[key_group]["dia"]:
+                filas_grouped[key_group]["dia"]["multiplicador"] += units_d
+            # Añadimos el nuevo nombre de ingrediente al rastro para que el usuario sepa qué incluye la fila
+            if ing_nombre.capitalize() not in filas_grouped[key_group]["ingrediente"]:
+                filas_grouped[key_group]["ingrediente"] += f", {ing_nombre}"
 
-    # -- Deduplicación de Filas Agresiva --
-    vistos_m = set()
-    vistos_d = set()
-    filas_unicas = []
-    
-    for f in filas:
-        m_name = f["mercadona"]["nombre"] if f["mercadona"] else ""
-        d_name = f["dia"]["nombre"] if f["dia"] else ""
-        
-        # Si alguno de los dos productos YA ha sido mostrado en la lista en otra fila, omitimos la fila
-        # Esto agrupa definitivamente sub-variantes de ingredientes
-        ya_visto_m = m_name != "" and m_name in vistos_m
-        ya_visto_d = d_name != "" and d_name in vistos_d
-        
-        if ya_visto_m or ya_visto_d:
-            continue
-            
-        if m_name: vistos_m.add(m_name)
-        if d_name: vistos_d.add(d_name)
-            
-        filas_unicas.append(f)
+    # Convertimos el diccionario agrupado a la lista final de filas
+    filas_unicas = list(filas_grouped.values())
 
     # -- Calculo de la Cesta Mixta (Mejor opción absoluta) --
     cesta_mixta_total = 0.0
