@@ -53,6 +53,22 @@
     .ingredientes-meta { margin-top: 12px; background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
     .ingredientes-meta h4 { margin: 0 0 8px 0; color: #2c3e50; }
     .ingredientes-meta ul { margin: 0; padding-left: 18px; color: #222; }
+
+    .checklist-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; margin-top: 10px; }
+    .check-item { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; color: #111; }
+    .check-item input { width: 16px; height: 16px; accent-color: #0984e3; cursor: pointer; }
+    .check-item label { cursor: pointer; flex: 1; }
+    .check-cantidad { color: #555; font-size: 0.9em; white-space: nowrap; }
+
+    .checklist-actions { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .checklist-count { font-weight: bold; color: #2c3e50; margin-right: 6px; }
+    .btn-checklist { background: #f1f5f9; color: #111; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .btn-checklist:hover { background: #e2e8f0; }
+    .btn-buscar { background: #0984e3; color: #fff; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 700; }
+    .btn-buscar:hover { background: #0769b5; }
+    .btn-buscar:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    #loader-busqueda { display: none; text-align: center; margin: 18px 0; color: #333; }
 </style>
 
 <div class="card planificador-container" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -124,7 +140,26 @@
         <div id="ingredientes-meta" class="ingredientes-meta" style="display:none;"></div>
 
         <h3 style="color: #2c3e50; margin-bottom: 15px; margin-top: 30px;">🛒 Tu Lista de la Compra</h3>
-        <div id="winner-banner" class="winner-banner"></div>
+
+        <div id="checklist-wrapper" class="ingredientes-meta" style="display:none;">
+            <h4>Selecciona los ingredientes que quieres comprar</h4>
+            <div id="checklist-grid" class="checklist-grid"></div>
+            <div class="checklist-actions">
+                <span class="checklist-count">Seleccionados: <span id="checklist-count">0</span></span>
+                <button type="button" class="btn-checklist" onclick="seleccionarTodoChecklist()">Seleccionar todo</button>
+                <button type="button" class="btn-checklist" onclick="limpiarChecklist()">Quitar todo</button>
+                <button type="button" id="btn-buscar-checklist" class="btn-buscar" onclick="buscarConChecklist()" disabled>Buscar precios con selección</button>
+            </div>
+            <div id="checklist-excluidos" style="margin-top:10px; color:#2d6a4f;"></div>
+        </div>
+
+        <div id="loader-busqueda">
+            <div class="spinner"></div>
+            <p style="margin:0;">Buscando precios para tu selección...</p>
+        </div>
+
+        <div id="comparativa-wrapper" style="display:none;">
+            <div id="winner-banner" class="winner-banner"></div>
 
         <div id="comparison-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; margin-top: 20px;">
             <!-- Mercadona Header -->
@@ -146,12 +181,14 @@
             <div id="m-missing" style="background: #f4fbf7; padding: 15px; border-radius: 0 0 12px 12px; border: 1px solid #ddd; border-top: none; color: #c0392b; font-size: 0.9em;"></div>
             <div id="d-missing" style="background: #fff5f6; padding: 15px; border-radius: 0 0 12px 12px; border: 1px solid #ddd; border-top: none; color: #c0392b; font-size: 0.9em;"></div>
         </div>
+        </div>
     </div>
 </div>
 
 <script>
 // Variable global para guardar los datos de la IA temporalmente
 let currentMenuData = null;
+let ingredientesChecklist = [];
 
 // PERSISTENCIA: Cargar al iniciar
 window.addEventListener('load', () => {
@@ -262,7 +299,150 @@ function renderizarMenu(data) {
         metaDiv.innerHTML = '';
     }
 
-    const comp = data.comparativa;
+    ingredientesChecklist = ingredientes;
+    renderizarChecklist(ingredientes, excluidos);
+
+    document.getElementById('comparativa-wrapper').style.display = 'none';
+}
+
+function renderizarChecklist(ingredientes, excluidos) {
+    const wrapper = document.getElementById('checklist-wrapper');
+    const grid = document.getElementById('checklist-grid');
+    const excluidosDiv = document.getElementById('checklist-excluidos');
+
+    if (!ingredientes || ingredientes.length === 0) {
+        wrapper.style.display = 'none';
+        grid.innerHTML = '';
+        excluidosDiv.innerHTML = '';
+        actualizarContadorChecklist();
+        return;
+    }
+
+    wrapper.style.display = 'block';
+    grid.innerHTML = ingredientes.map((item, idx) => {
+        const nombre = typeof item === 'string' ? item : (item.nombre || 'Ingrediente');
+        const cantidad = typeof item === 'string' ? '' : `${item.cantidad ?? ''}${item.unidad ?? ''}`;
+        const frecuencia = typeof item === 'string' ? '' : (item.frecuencia_menu ? ` (${item.frecuencia_menu} usos)` : '');
+        const checkboxId = `ingrediente-check-${idx}`;
+
+        return `
+            <div class="check-item">
+                <input type="checkbox" id="${checkboxId}" class="ingrediente-check" data-index="${idx}" checked onchange="actualizarContadorChecklist()">
+                <label for="${checkboxId}">${nombre}${frecuencia}</label>
+                ${cantidad ? `<span class="check-cantidad">${cantidad}</span>` : ''}
+            </div>
+        `;
+    }).join('');
+
+    excluidosDiv.innerHTML = excluidos.length > 0
+        ? `<strong>✅ Excluidos por despensa:</strong> ${excluidos.join(', ')}`
+        : '';
+
+    actualizarContadorChecklist();
+}
+
+function actualizarContadorChecklist() {
+    const checks = Array.from(document.querySelectorAll('.ingrediente-check'));
+    const seleccionados = checks.filter(ch => ch.checked).length;
+    document.getElementById('checklist-count').textContent = String(seleccionados);
+    document.getElementById('btn-buscar-checklist').disabled = seleccionados === 0;
+}
+
+function seleccionarTodoChecklist() {
+    document.querySelectorAll('.ingrediente-check').forEach(ch => { ch.checked = true; });
+    actualizarContadorChecklist();
+}
+
+function limpiarChecklist() {
+    document.querySelectorAll('.ingrediente-check').forEach(ch => { ch.checked = false; });
+    actualizarContadorChecklist();
+}
+
+function obtenerIngredientesSeleccionados() {
+    const checks = Array.from(document.querySelectorAll('.ingrediente-check'));
+    const seleccionados = [];
+
+    checks.forEach(ch => {
+        if (!ch.checked) return;
+        const idx = Number(ch.getAttribute('data-index'));
+        if (Number.isInteger(idx) && idx >= 0 && idx < ingredientesChecklist.length) {
+            seleccionados.push(ingredientesChecklist[idx]);
+        }
+    });
+
+    return seleccionados;
+}
+
+async function buscarConChecklist() {
+    const ingredientesSeleccionados = obtenerIngredientesSeleccionados();
+
+    if (!ingredientesSeleccionados.length) {
+        alert('Selecciona al menos un ingrediente para buscar precios.');
+        return;
+    }
+
+    const alergias = document.getElementById('alergiasInput').value
+        .split(',')
+        .map(a => a.trim())
+        .filter(a => a.length > 0);
+
+    const ingredientesEnCasa = document.getElementById('despensaInput').value
+        .split(',')
+        .map(i => i.trim())
+        .filter(i => i.length > 0);
+
+    document.getElementById('loader-busqueda').style.display = 'block';
+
+    try {
+        const payload = {
+            ingredientes: ingredientesSeleccionados,
+            alergias: alergias,
+            ingredientes_en_casa: ingredientesEnCasa
+        };
+
+        let response = null;
+        let lastNetworkError = null;
+
+        // Reintento corto para evitar fallos transitorios al reiniciar contenedores
+        for (let intento = 1; intento <= 2; intento++) {
+            try {
+                response = await fetch('http://localhost:8001/comparar-lista-compra', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                break;
+            } catch (networkErr) {
+                lastNetworkError = networkErr;
+                if (intento === 1) {
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                }
+            }
+        }
+
+        if (!response) {
+            throw new Error(lastNetworkError?.message || 'No se pudo conectar con el servidor.');
+        }
+
+        if (!response.ok) {
+            const detalle = await response.text();
+            throw new Error(detalle || `Error HTTP ${response.status}`);
+        }
+
+        const comp = await response.json();
+        if (comp.error) throw new Error(comp.error);
+
+        currentMenuData.comparativa = comp;
+        renderizarComparativa(comp);
+        document.getElementById('comparativa-wrapper').style.display = 'block';
+    } catch (error) {
+        alert('Error al buscar precios: ' + error.message);
+    } finally {
+        document.getElementById('loader-busqueda').style.display = 'none';
+    }
+}
+
+function renderizarComparativa(comp) {
     const banner = document.getElementById('winner-banner');
     
     let warningHtml = "";
@@ -387,7 +567,10 @@ function crearHtmlElemento(p, tienda, isMix = false) {
 
 // --- NUEVA FUNCIÓN PARA GUARDAR ---
 async function guardarMenuEnHistorial() {
-    if (!currentMenuData) return;
+    if (!currentMenuData || !currentMenuData.comparativa) {
+        alert('Primero busca precios con tu selección para poder guardar.');
+        return;
+    }
 
     // "Engañamos" un poco al save_basket.php enviándole los datos con la misma estructura que espera
     // Pero además, le colamos nuestro menú generado por si en el futuro queremos mostrarlo en el dashboard.

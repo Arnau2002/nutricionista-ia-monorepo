@@ -812,7 +812,7 @@ async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = 
 @app.post("/comparar-lista-compra", response_model=ComparativaFinal)
 async def comparar_lista_compra(lista: ListaCompraRequest):
     ingredientes_filtrados, _ = filtrar_ingredientes_en_casa(lista.ingredientes, lista.ingredientes_en_casa)
-    return procesar_lista_compra(ingredientes_filtrados, alergias=lista.alergias if hasattr(lista, 'alergias') else None)
+    return await procesar_lista_compra(ingredientes_filtrados, alergias=lista.alergias if hasattr(lista, 'alergias') else None)
 
 @app.get("/test-debug")
 async def test_debug():
