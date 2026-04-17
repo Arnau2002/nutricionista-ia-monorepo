@@ -618,8 +618,8 @@ async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = 
     cesta_d = {"total": 0.0, "items": [], "missing": []}
     
     # Comparativa basada en productos presentes en ambos supermercados
-    # Solo comparamos el ahorro de los productos que están en AMBOS.
-    # Así el usuario tiene una referencia real de precio por los mismos items.
+    # Selección "más caro/barato": por precio normalizado y formato equivalente.
+    # Total de cesta: siempre con precio real del producto comprado.
     
     comp_m = 0.0
     comp_d = 0.0
@@ -628,19 +628,77 @@ async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = 
     items_comunes_count = 0
     filas_grouped = {} # Usaremos un dict para agrupar por (Prod_M, Prod_D)
 
-    def local_comp_price(item, qty):
-        if not item: return 0.0
-        p_ref = item.get('precio_ref', 0)
-        if p_ref > 0.05: return p_ref
-        return item['precio']
+    def _es_liquido(ing_nombre: str, unidad_obj: str) -> bool:
+        nombre = normalizar(ing_nombre)
+        u = (unidad_obj or '').lower().strip()
+        if u in ['ml', 'l', 'litro', 'litros']:
+            return True
+        return any(k in nombre for k in ['aceite', 'leche', 'zumo', 'caldo', 'vinagre', 'bebida', 'soja'])
+
+    def _target_base_qty(target_qty: float, unidad_obj: str, ing_nombre: str) -> tuple[float, str]:
+        """Devuelve cantidad objetivo en base comparable (kg o l)."""
+        qty = float(target_qty or 0)
+        u = (unidad_obj or '').lower().strip()
+
+        if u in ['g']:
+            return qty / 1000.0, 'kg'
+        if u in ['kg', 'kilo', 'kilos']:
+            return qty, 'kg'
+        if u in ['ml']:
+            return qty / 1000.0, 'l'
+        if u in ['l', 'litro', 'litros']:
+            return qty, 'l'
+
+        # Fallback si viene en unidades: estimación conservadora
+        if _es_liquido(ing_nombre, u):
+            return qty * 0.25, 'l'
+        return qty * 0.15, 'kg'
+
+    def precio_comparable(item: dict, target_qty: float, unidad_obj: str, ing_nombre: str, units_reales: int) -> float:
+        """Coste comparable para decidir barato/caro usando referencia €/kg o €/l y formato similar."""
+        if not item:
+            return float('inf')
+
+        precio = float(item.get('precio', 0) or 0)
+        p_ref = float(item.get('precio_ref', 0) or 0)
+        unidad_ref = (item.get('unidad', '') or '').lower().strip()
+
+        # Si no hay referencia útil, caemos al coste real
+        if p_ref <= 0.05 or precio <= 0:
+            return precio * max(1, units_reales)
+
+        target_base, target_tipo = _target_base_qty(target_qty, unidad_obj, ing_nombre)
+        if target_base <= 0:
+            return precio * max(1, units_reales)
+
+        # Convertimos p_ref según su unidad (kg/l o por 100g/ml)
+        if unidad_ref in ['kg', 'kilo', 'kilos', 'l', 'litro', 'litros']:
+            comparable = p_ref * target_base
+            tam_producto = precio / p_ref  # kg o l del envase
+        elif '100' in unidad_ref:
+            comparable = p_ref * (target_base * 10.0)
+            tam_producto = (precio / p_ref) / 10.0
+        else:
+            comparable = precio * max(1, units_reales)
+            tam_producto = 0
+
+        # Penalización por desajuste de formato (especial cuidado en líquidos)
+        if tam_producto > 0:
+            ratio = tam_producto / max(0.001, target_base)
+            if ratio > 2.0:
+                penal_base = 0.35 if target_tipo == 'l' else 0.25
+                comparable *= 1 + min((ratio - 2.0) * penal_base, 1.2)
+
+        return comparable
 
     # Consolidación de ingredientes duplicados
     dict_consolidado = {}
     for ing_obj in lista_ingredientes:
         nombre = normalizar(ing_obj['nombre'] if isinstance(ing_obj, dict) else ing_obj)
         qty = ing_obj.get('cantidad', 0) if isinstance(ing_obj, dict) else 0
+        unidad = ing_obj.get('unidad', 'ud') if isinstance(ing_obj, dict) else 'ud'
         if nombre not in dict_consolidado:
-            dict_consolidado[nombre] = {"nombre": nombre, "cantidad": qty}
+            dict_consolidado[nombre] = {"nombre": nombre, "cantidad": qty, "unidad": unidad}
         else:
             dict_consolidado[nombre]["cantidad"] += qty
     
@@ -659,6 +717,7 @@ async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = 
     for i_data, res in zip(ingredientes_finales, resultados_busqueda):
         ing_nombre = i_data['nombre']
         target_qty = i_data['cantidad']
+        target_unidad = i_data.get('unidad', 'ud')
         
         best_m = None
         best_d = None
@@ -669,32 +728,44 @@ async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = 
             if res.get('mejor') and res['mejor']['tienda'] == 'Dia': best_d = res['mejor']
             elif res.get('otras'): best_d = next((x for x in res['otras'] if x['tienda'] == 'Dia'), None)
 
-        # Lógica de asignación a cestas (Limpia)
+        # Lógica de asignación a cestas
         units_m = 0
         units_d = 0
+        comp_price_m = float('inf')
+        comp_price_d = float('inf')
         
         if best_m:
             units_m = calcular_unidades_a_comprar(target_qty, best_m, ing_nombre)
             best_m["multiplicador"] = units_m
+            best_m["precio_total_real"] = round(best_m["precio"] * units_m, 2)
+            comp_price_m = precio_comparable(best_m, target_qty, target_unidad, ing_nombre, units_m)
+            best_m["precio_comparable"] = round(comp_price_m, 4)
             cesta_m["items"].append(best_m)
+            # Total real de cesta (requisito usuario)
             cesta_m["total"] += best_m["precio"] * units_m
-            comp_m += local_comp_price(best_m, target_qty) * units_m
+            # Total normalizado para decidir caro/barato
+            comp_m += comp_price_m
         else:
             cesta_m["missing"].append(ing_nombre)
 
         if best_d:
             units_d = calcular_unidades_a_comprar(target_qty, best_d, ing_nombre)
             best_d["multiplicador"] = units_d
+            best_d["precio_total_real"] = round(best_d["precio"] * units_d, 2)
+            comp_price_d = precio_comparable(best_d, target_qty, target_unidad, ing_nombre, units_d)
+            best_d["precio_comparable"] = round(comp_price_d, 4)
             cesta_d["items"].append(best_d)
+            # Total real de cesta (requisito usuario)
             cesta_d["total"] += best_d["precio"] * units_d
-            comp_d += local_comp_price(best_d, target_qty) * units_d
+            # Total normalizado para decidir caro/barato
+            comp_d += comp_price_d
         else:
             cesta_d["missing"].append(ing_nombre)
 
-        # Si están en ambos, los sumamos a la comparativa justa para el cálculo de ahorro
+        # Si están en ambos, sumamos comparativa justa (normalizada) para decisión de barato/caro
         if best_m and best_d:
-            comparativa_justa_m += best_m["precio"] * units_m
-            comparativa_justa_d += best_d["precio"] * units_d
+            comparativa_justa_m += comp_price_m
+            comparativa_justa_d += comp_price_d
             items_comunes_count += 1
             
         # [NUEVO] Agrupación por pareja de productos (Evita filas duplicadas en la tabla)
@@ -720,34 +791,44 @@ async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = 
     # Convertimos el diccionario agrupado a la lista final de filas
     filas_unicas = list(filas_grouped.values())
 
-    # -- Calculo de la Cesta Mixta (Mejor opción absoluta) --
+    # -- Cálculo de Cesta Mixta --
+    # Se selecciona por coste normalizado/comparable, pero se suma precio real del producto elegido.
     cesta_mixta_total = 0.0
     cesta_mixta_items = 0
     for f in filas_unicas:
-        pm = f["mercadona"]["precio"] if f["mercadona"] else float('inf')
-        pd = f["dia"]["precio"] if f["dia"] else float('inf')
+        pm_comp = f["mercadona"].get("precio_comparable", float('inf')) if f["mercadona"] else float('inf')
+        pd_comp = f["dia"].get("precio_comparable", float('inf')) if f["dia"] else float('inf')
+
+        pm_real = f["mercadona"].get("precio_total_real", f["mercadona"].get("precio", 0)) if f["mercadona"] else float('inf')
+        pd_real = f["dia"].get("precio_total_real", f["dia"].get("precio", 0)) if f["dia"] else float('inf')
         
-        if pm == float('inf') and pd == float('inf'):
+        if pm_comp == float('inf') and pd_comp == float('inf'):
             f["recomendado_mixto"] = "ninguno"
             continue
             
-        if pm <= pd:
-            cesta_mixta_total += pm
+        if pm_comp <= pd_comp:
+            cesta_mixta_total += pm_real
             cesta_mixta_items += 1
             f["recomendado_mixto"] = "Mercadona"
         else:
-            cesta_mixta_total += pd
+            cesta_mixta_total += pd_real
             cesta_mixta_items += 1
             f["recomendado_mixto"] = "Dia"
 
     # Cálculo final de ahorro y ganador
-    # Atendiendo a la petición del usuario: comparamos la resta de los tickets reales
+    # Ganador: por comparación normalizada (Kg/L y formato equivalente).
+    # Ahorro total cesta: por ticket real de compra.
     ahorro = round(abs(cesta_m["total"] - cesta_d["total"]), 2)
-    
-    # Decidimos el ganador por el ticket más barato
-    if cesta_m["total"] < cesta_d["total"]: ganador = "Mercadona"
-    elif cesta_d["total"] < cesta_m["total"]: ganador = "Dia"
-    else: ganador = "Empate"
+
+    score_m = comparativa_justa_m if items_comunes_count > 0 else comp_m
+    score_d = comparativa_justa_d if items_comunes_count > 0 else comp_d
+
+    if score_m < score_d:
+        ganador = "Mercadona"
+    elif score_d < score_m:
+        ganador = "Dia"
+    else:
+        ganador = "Empate"
 
     # Si la cesta mixta es todavía más barata, avisamos.
     if cesta_mixta_total < min(cesta_m["total"], cesta_d["total"]):
