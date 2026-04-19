@@ -31,20 +31,20 @@ client = None
 model = None
 
 try:
-    client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+    client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT, timeout=5)
     client.get_collections()
     model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-    print("✅ Sistema Nutricionista IA Online.")
+    print("Sistema Nutricionista IA Online.")
 except Exception as e:
-    print(f"❌ Error crítico al conectar con Qdrant: {e}")
+    print(f"Error al conectar con Qdrant ({QDRANT_HOST}): {e}")
+    print("Intentando con localhost...")
     try:
-        print("🔄 Reintentando conexión en localhost...")
-        client = QdrantClient(host='localhost', port=6333)
+        client = QdrantClient(host='localhost', port=6333, timeout=5)
         client.get_collections()
         model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-        print("✅ Conexión recuperada en Localhost.")
+        print("Conexion recuperada en Localhost.")
     except:
-        print("💀 Imposible conectar a la Base de Datos Vectorial.")
+        print("Imposible conectar a la Base de Datos Vectorial.")
 
 # MODELOS 
 class ItemBusqueda(BaseModel):
@@ -55,6 +55,7 @@ class ListaCompraRequest(BaseModel):
     dieta: Optional[str] = "Equilibrada"
     alergias: Optional[List[str]] = []
     objetivo: Optional[str] = "Ahorro"
+    ciudad: Optional[str] = "Valencia"
     ingredientes_en_casa: Optional[List[str]] = []
 
 class MenuRequest(BaseModel):
@@ -69,6 +70,7 @@ class MenuRequest(BaseModel):
     me_gusta: Optional[List[str]] = []
     objetivo: Optional[str] = "equilibrado"
     incluir_snacks: Optional[bool] = False
+    ciudad: Optional[str] = "Valencia"
     ingredientes_en_casa: Optional[List[str]] = []
 
 class ComparativaFinal(BaseModel):
@@ -200,7 +202,8 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
             return 0.0
 
     # Filtro de categorías no alimentarias
-    if any(cp in categoria_prod.lower() for cp in CATEGORIAS_PROHIBIDAS):
+    categoria_lower = str(categoria_prod).lower()
+    if any(cp in categoria_lower for cp in CATEGORIAS_PROHIBIDAS):
         return 0.0
 
     query_tokens = tokenizar(query_original)
@@ -268,7 +271,7 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
     category_boost = 0.0
     for key, cats_validas in MAPEO_CATEGORIAS.items():
         if key == query_tokens[0]:
-            if any(cv.lower() in categoria_prod.lower() for cv in cats_validas):
+            if any(cv.lower() in categoria_lower for cv in cats_validas):
                 category_boost = 0.35 # Subido ligeramente
                 break
 
@@ -345,15 +348,15 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
 
     # 9. FILTRO GENÉRICO "FRESCO VS DERIVADO"
     # Evita falsos positivos como mayonesa por ajo, o harina por garbanzos.
-    derivados = {"zumo", "nectar", "sabor", "helado", "caramelo", "bizcocho", "tarta", "mermelada", "salsa", "ketchup", "mayonesa", "mayo", "sorbete", "pure", "frito", "polvo", "rallado", "condimento", "aroma", "sirope", "gelatina", "extracto", "harina", "preparado", "brownie", "pastel", "galleta", "magdalena", "snack", "postre", "flan", "membrillo", "chicle", "chuche", "golosina", "gragea", "moscada", "dulce de leche", "chili", "bifidus", "plato", "preparado", "sazonador", "encurtido", "banderilla", "vinagreta", "aliño", "untable", "relleno", "canelones", "lasaña", "alimento infantil", "papilla", "postre lacteo", "bolsa 90 g", "bolsa 100 g", "bolsa 110 g", "smileat", "hero", "nestle"}
-    procesados = {"nugget", "rebozado", "rebozada", "crunchy", "croqueta", "empanadilla", "empanado", "lonchas", "fiambre", "embutido", "pate", "salchicha", "chorizo", "morcilla", "salami", "pizza", "empanada", "lasaña", "canelones", "nuggets"}
+    derivados = {"zumo", "nectar", "sabor", "helado", "caramelo", "bizcocho", "tarta", "mermelada", "salsa", "ketchup", "mayonesa", "mayo", "sorbete", "pure", "frito", "polvo", "rallado", "condimento", "aroma", "sirope", "gelatina", "extracto", "harina", "preparado", "brownie", "pastel", "galleta", "magdalena", "snack", "postre", "flan", "membrillo", "chicle", "chuche", "golosina", "gragea", "moscada", "dulce de leche", "chili", "bifidus", "plato", "preparado", "sazonador", "encurtido", "banderilla", "vinagreta", "aliño", "untable", "relleno", "canelones", "lasaña", "alimento infantil", "papilla", "postre lacteo", "bolsa 90 g", "bolsa 100 g", "bolsa 110 g", "smileat", "hero", "nestle", "vinagre", "ensalada", "triturado", "bebida", "infantil", "crecimiento", "peques", "preparada", "hummus", "batido", "guacamole", "gazpacho", "salmorejo", "crema", "pudin", "mousse"}
+    procesados = {"nugget", "rebozado", "rebozada", "crunchy", "croqueta", "empanadilla", "empanado", "lonchas", "fiambre", "embutido", "pate", "salchicha", "chorizo", "morcilla", "salami", "pizza", "empanada", "lasaña", "canelones", "nuggets", "listo para", "microondas", "asado", "cocinado", "sobrasada", "mortadela", "fuet", "butifarra"}
     
     # Si la query no solicita explícitamente un derivado o ultraprocesado...
     if not any(d in query_tokens for d in derivados.union(procesados)):
         if any(d in nombre_prod for d in derivados):
-            final_score -= 3.00 # ¡Ataque nuclear! Antes era -0.60 pero ciertos scores base subían a 2.0
+            final_score -= 5.00 # ¡Ataque nuclear reforzado!
         if any(p in nombre_prod for p in procesados):
-            final_score -= 4.00 # Manda las empanadillas y los platos de chorizo a números negativos
+            final_score -= 6.00 # Manda los ultraprocesados a la última página
             
     # 9b. PENALIZACIÓN ESPECÍFICA "FRESCO" VS "CONSERVA/LATA"
     # Si pides algo 'fresco' (ej. espinacas frescas), penalizamos fuertemente conservas o latas.
@@ -404,8 +407,11 @@ def calcular_score_v15(producto: dict, query_original: str, alergias: list = Non
 
     return final_score * multiplicador_match
 
-def buscar_producto_inteligente(ingrediente: str, reintento_simple=False, alergias: list = None):
+def buscar_producto_inteligente(ingrediente: str, reintento_simple=False, alergias: list = None, ciudad: str = "Valencia"):
     if not client or not model: return None
+    
+    # Normalización de ciudad (Málaga -> Malaga, Bilbao -> Bilbao)
+    ciudad_norm = ciudad.replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó', 'o').replace('ú', 'u').capitalize()
     
     # 1. Limpieza de entrada
     nombre_raw = ingrediente['nombre'] if isinstance(ingrediente, dict) else ingrediente
@@ -450,7 +456,10 @@ def buscar_producto_inteligente(ingrediente: str, reintento_simple=False, alergi
                 collection_name="productos_supermercado", 
                 query_vector=vector, 
                 query_filter=models.Filter(
-                    must=[models.FieldCondition(key='tienda', match=models.MatchValue(value=sq['tienda']))]
+                    must=[
+                        models.FieldCondition(key='tienda', match=models.MatchValue(value=sq['tienda'])),
+                        models.FieldCondition(key='ciudad', match=models.MatchAny(any=[ciudad_norm, ciudad_norm.lower()]))
+                    ]
                 ),
                 limit=sq['limit'],
                 with_payload=True
@@ -490,7 +499,7 @@ def buscar_producto_inteligente(ingrediente: str, reintento_simple=False, alergi
         # Reintento con núcleo si no hay resultados
         # Si no encontramos nada con el nombre largo, probamos solo con la primera palabra (ej: 'Lentejas')
         if not reintento_simple:
-            return buscar_producto_inteligente(ingrediente, reintento_simple=True, alergias=alergias)
+            return buscar_producto_inteligente(ingrediente, reintento_simple=True, alergias=alergias, ciudad=ciudad)
         return None
 
     # Ordenar por mejor coincidencia
@@ -551,69 +560,50 @@ def buscar_producto_inteligente(ingrediente: str, reintento_simple=False, alergi
 
     return {"mejor": ganador, "otras": perdedor}
 
-def calcular_unidades_a_comprar(target_qty, producto, ing_nombre=""):
+def calcular_unidades_a_comprar(target_qty, target_unidad, producto, ing_nombre=""):
     if not producto: return 1
     p_ref = producto.get('precio_ref', 0)
     precio = producto.get('precio', 0)
-    unidad = producto.get('unidad', 'ud').lower()
+    unidad_tienda = (producto.get('unidad', 'ud') or 'ud').lower().strip()
     
-    if p_ref <= 0.05 or target_qty <= 0:
+    if p_ref <= 0.05 or float(target_qty or 0) <= 0:
         return 1
         
-    tamano_producto = precio / p_ref
-    
-    # Determinar si target_qty son Unidades o Gramos/Ml
-    ing_lower = ing_nombre.lower()
-    es_unidad = any(x in ing_lower for x in ["huevo", "yogur", "manzana", "platano", "pera", "naranja", "aguacate", "tostada"]) 
-    # v40: Si es Zumo o Bebida, NO es unidad (queremos tratarlo como volumen)
-    if any(x in ing_lower for x in ["zumo", "bebida", "leche", "caldo"]):
-        es_unidad = False
+    tamano_producto = precio / p_ref # Kg o L del envase en el súper
     
     target = float(target_qty)
+    u_usuario = (target_unidad or 'ud').lower().strip()
+    ing_lower = ing_nombre.lower()
+
+    # 1. NORMALIZACIÓN DE LA NECESIDAD DEL USUARIO A KG/L
+    # Independientemente de lo que venda el súper, necesitamos saber cuántos Kg/L quiere el usuario.
+    if u_usuario in ['g', 'ml']:
+        target_base = target / 1000.0
+    elif u_usuario in ['kg', 'kilo', 'l', 'litro']:
+        target_base = target
+    elif '100' in u_usuario:
+        target_base = target / 10.0
+    elif u_usuario in ['ud', 'uds', 'unidad', 'unidades']:
+        # Si el usuario pide unidades, estimamos peso para poder comparar con Kg del súper
+        if "ajo" in ing_lower: peso = 0.05
+        elif any(x in ing_lower for x in ["cebolla", "calabacin", "pimiento"]): peso = 0.20
+        elif any(x in ing_lower for x in ["huevo", "yogur", "manzana", "naranja"]): peso = 0.15
+        else: peso = 0.15
+        target_base = target * peso
+    else:
+        target_base = target / 1000.0 # Fallback a gramos
     
     try:
-        if es_unidad:
-            if unidad in ['kg', 'kilo', 'l', 'litro']:
-                necesidad_eq = target * 0.150 # 150g por pieza aprox
-            elif '100' in unidad:
-                necesidad_eq = target * 1.5
-            elif unidad in ['docena', 'dc']:
-                necesidad_eq = target / 12.0
-            else:
-                necesidad_eq = target
-        else:
-            if unidad in ['kg', 'kilo', 'l', 'litro']:
-                necesidad_eq = target / 1000.0
-            elif '100' in unidad:
-                necesidad_eq = target / 100.0
-            elif unidad in ['docena', 'dc']:
-                necesidad_eq = (target / 50.0) / 12.0 
-            else:
-                # El súper vende uds, y tú pides gramos (ej. 10g de perejil, o 2kg de cebolla)
-                if "ajo" in ing_lower:
-                    peso_unidad = 50.0 # 50g cabeza
-                elif any(x in ing_lower for x in ["sal", "especia", "oregano", "perejil", "laurel"]):
-                    peso_unidad = 20.0 # botecito pequeño 20g
-                elif "cebolla" in ing_lower or "calabacin" in ing_lower or "pimiento" in ing_lower:
-                    peso_unidad = 200.0 
-                else:
-                    peso_unidad = 150.0 
-                
-                # v40: Rendimiento de zumo (1L de zumo requiere aprox 2kg de naranjas)
-                # v40: Rendimiento de zumo (1L de zumo requiere aprox 2kg de naranjas)
-                if "zumo" in ing_lower and "naranja" in ing_lower:
-                    peso_unidad = 500.0 # Cada unidad de 1kg rinde solo 500ml de zumo real
-                
-                necesidad_eq = target / peso_unidad
-                
-        unidades = math.ceil(necesidad_eq / tamano_producto)
+        # 2. CÁLCULO DE UNIDADES SEGÚN EL FORMATO DEL SÚPER
+        # tamano_producto ya está en Kg o L (gracias a precio / precio_ref_kg)
+        unidades = math.ceil(target_base / max(0.001, tamano_producto))
         return max(1, unidades)
     except:
         return 1
 
 import asyncio
 
-async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = None) -> dict:
+async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = None, ciudad: str = "Valencia") -> dict:
     cesta_m = {"total": 0.0, "items": [], "missing": []}
     cesta_d = {"total": 0.0, "items": [], "missing": []}
     
@@ -709,7 +699,7 @@ async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = 
     
     # Disparar búsquedas concurrentes en Qdrant (ahorro bestial de tiempo I/O)
     tareas = [
-        loop.run_in_executor(None, buscar_producto_inteligente, i_data['nombre'], False, alergias)
+        loop.run_in_executor(None, buscar_producto_inteligente, i_data['nombre'], False, alergias, ciudad)
         for i_data in ingredientes_finales
     ]
     resultados_busqueda = await asyncio.gather(*tareas)
@@ -735,7 +725,7 @@ async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = 
         comp_price_d = float('inf')
         
         if best_m:
-            units_m = calcular_unidades_a_comprar(target_qty, best_m, ing_nombre)
+            units_m = calcular_unidades_a_comprar(target_qty, target_unidad, best_m, ing_nombre)
             best_m["multiplicador"] = units_m
             best_m["precio_total_real"] = round(best_m["precio"] * units_m, 2)
             comp_price_m = precio_comparable(best_m, target_qty, target_unidad, ing_nombre, units_m)
@@ -749,7 +739,7 @@ async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = 
             cesta_m["missing"].append(ing_nombre)
 
         if best_d:
-            units_d = calcular_unidades_a_comprar(target_qty, best_d, ing_nombre)
+            units_d = calcular_unidades_a_comprar(target_qty, target_unidad, best_d, ing_nombre)
             best_d["multiplicador"] = units_d
             best_d["precio_total_real"] = round(best_d["precio"] * units_d, 2)
             comp_price_d = precio_comparable(best_d, target_qty, target_unidad, ing_nombre, units_d)
@@ -893,7 +883,7 @@ async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = 
 @app.post("/comparar-lista-compra", response_model=ComparativaFinal)
 async def comparar_lista_compra(lista: ListaCompraRequest):
     ingredientes_filtrados, _ = filtrar_ingredientes_en_casa(lista.ingredientes, lista.ingredientes_en_casa)
-    return await procesar_lista_compra(ingredientes_filtrados, alergias=lista.alergias if hasattr(lista, 'alergias') else None)
+    return await procesar_lista_compra(ingredientes_filtrados, alergias=lista.alergias, ciudad=lista.ciudad)
 
 @app.get("/test-debug")
 async def test_debug():
@@ -936,7 +926,7 @@ async def planificar_menu(req: MenuRequest):
         if req.tipo_dieta and "gluten" in req.tipo_dieta.lower() and "gluten" not in [a.lower() for a in alergias_activas]:
             alergias_activas.append("gluten")
         
-        comparativa = await procesar_lista_compra(ingredientes_filtrados, alergias=alergias_activas)
+        comparativa = await procesar_lista_compra(ingredientes_filtrados, alergias=alergias_activas, ciudad=req.ciudad)
         
         return {
             "menu": resultado_chef.get("menu_pensado", []),

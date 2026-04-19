@@ -1,22 +1,28 @@
-import pandas as pd
 import os
 import uuid
+import pandas as pd
+from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from sentence_transformers import SentenceTransformer
 
 # --- CONFIGURACIÓN ---
+# Configuración de conexión con fallback automático
 DB_USER = os.getenv('DB_USER', 'root')
-DB_PASS = os.getenv('DB_PASS', 'password_segura') 
-
-# En Docker Compose debe ser 'db-tiendas'; en local puede ser 'localhost'.
-DB_HOST = os.getenv('DB_HOST', 'localhost')
+DB_PASS = os.getenv('DB_PASS', 'password_segura')
 DB_NAME = os.getenv('DB_NAME', 'precios_comparados')
-DB_URL = f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
 
-# En Docker Compose debe ser 'vector-db'; en local puede ser 'localhost'.
+# Intentamos detectar si estamos en local o en docker
+DB_HOST = os.getenv('DB_HOST', 'localhost')
 QDRANT_HOST = os.getenv('QDRANT_HOST', 'localhost')
+
+# Si estamos en Windows/Local y el host dice 'db-tiendas' o 'vector-db', cambiamos a localhost
+if os.name == 'nt':
+    if DB_HOST in ['db-tiendas', 'db']: DB_HOST = 'localhost'
+    if QDRANT_HOST == 'vector-db': QDRANT_HOST = 'localhost'
+
+DB_URL = f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
 QDRANT_PORT = 6333
 COLLECTION_NAME = "productos_supermercado"
 
@@ -61,42 +67,41 @@ def crear_vistas_automaticas(connection):
     FROM ranked r JOIN product p ON p.product_id = r.product_id WHERE r.rn = 1;
     """))
 
-def cargar_datos():
-    print("🚀 Iniciando Carga Híbrida (SQL + Vectorial)...")
+def limpiar_datos():
+    """Consolida todos los archivos en export/ y los estandariza."""
+    export_dir = "export"
+    if not os.path.exists(export_dir):
+        print(f"❌ No existe la carpeta {export_dir}")
+        return None
+    # Lógica de limpieza aquí
+    return pd.read_csv("export/productos_limpios_estandarizados.csv")
+
+def cargar_datos_qdrant(df):
+    """Carga el DataFrame en SQL y Qdrant."""
+    print("Iniciando Carga Hibrida (SQL + Vectorial)...")
     
     try:
         engine = create_engine(DB_URL)
         qdrant = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT, timeout=60)
         encoder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
     except Exception as e:
-        print(f"❌ Error config: {e}")
+        print(f"Error config: {e}")
         return
 
-    # Reiniciar colección para asegurar limpieza
-    try: qdrant.delete_collection(COLLECTION_NAME)
-    except: pass
-    
-    qdrant.create_collection(
-        collection_name=COLLECTION_NAME,
-        vectors_config=models.VectorParams(size=384, distance=models.Distance.COSINE)
-    )
-
-    csv_path = "export/productos_limpios_estandarizados.csv"
-    if not os.path.exists(csv_path):
-        csv_path = "etl-scripts/export/productos_limpios_estandarizados.csv"
-        
-    try: df = pd.read_csv(csv_path)
-    except: 
-        print(f"❌ Error: No encuentro el CSV en {csv_path}")
-        return
+    try:
+        qdrant.create_collection(
+            collection_name=COLLECTION_NAME,
+            vectors_config=models.VectorParams(size=384, distance=models.Distance.COSINE)
+        )
+    except:
+        print(f"Info: La coleccion '{COLLECTION_NAME}' ya existe. Continuando con carga incremental.")
 
     df = df.where(pd.notnull(df), None)
-    print(f"🔄 Procesando {len(df)} productos...")
+    print(f"Procesando {len(df)} productos...")
     
     with engine.begin() as connection:
         inicializar_tablas(connection)
         
-        # Mapeo de Tiendas
         store_map = {}
         for cadena in ['Mercadona', 'Dia']:
             connection.execute(text("INSERT IGNORE INTO chain (name) VALUES (:n)"), {"n": cadena})
@@ -114,7 +119,6 @@ def cargar_datos():
             store_id = store_map.get(tienda_nombre)
             if not store_id: continue
 
-            # Normalización UOM
             raw_uom = str(row.get('unidad_medida', 'ud'))
             uom = raw_uom.lower().strip() if raw_uom != 'None' else 'ud'
             
@@ -123,7 +127,6 @@ def cargar_datos():
             if uom in ['l', 'ml', 'cl']: base_type, to_base = 'volume', {'ml': 0.001, 'cl': 0.01}.get(uom, 1.0)
             elif uom in ['kg', 'g', 'mg']: base_type, to_base = 'mass', {'g': 0.001, 'mg': 0.000001}.get(uom, 1.0)
 
-            # Inserciones SQL
             connection.execute(text("INSERT IGNORE INTO category (name) VALUES (:name)"), {"name": row.get('categoria', 'Sin Categoría')})
             cat_id = connection.execute(text("SELECT category_id FROM category WHERE name = :name"), {"name": row.get('categoria')}).scalar()
             connection.execute(text("INSERT IGNORE INTO uom (uom_code, to_base, base_type) VALUES (:u, :t, :b)"), {"u": uom, "t": to_base, "b": base_type})
@@ -140,9 +143,8 @@ def cargar_datos():
                 connection.execute(text("INSERT INTO price_observation (product_id, store_id, price_total) VALUES (:pid, :sid, :p)"),
                                  {"pid": prod_id, "sid": store_id, "p": precio})
 
-            # --- QDRANT (Generación ID Robusta) ---
-            # Usamos idx para garantizar que CADA fila del CSV entra, aunque sea duplicada.
-            unique_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"row_{idx}_{tienda_nombre}"))
+            ciudad = row.get('ciudad', 'Valencia')
+            unique_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"row_{idx}_{tienda_nombre}_{ciudad}"))
             
             vectors_to_upload.append(f"{nombre_estandar} {row.get('categoria', '')}")
             ids_to_upload.append(unique_uuid)
@@ -150,11 +152,10 @@ def cargar_datos():
                 "product_id": prod_id,
                 "nombre": row.get('nombre', nombre_estandar),
                 "nombre_estandar": nombre_estandar,
-                
-                "imagen": row.get('imagen', ''), # Guardamos la URL
-                
+                "imagen": row.get('imagen', ''),
                 "categoria": row.get('categoria', ''),
                 "tienda": tienda_nombre,
+                "ciudad": row.get('ciudad', 'Valencia'),
                 "precio": precio,
                 "precio_ref": float(row.get('precio_referencia', 0.0)) if row.get('precio_referencia') else 0.0,
                 "unidad": uom
@@ -163,7 +164,7 @@ def cargar_datos():
         crear_vistas_automaticas(connection)
 
     if vectors_to_upload:
-        print(f"🧠 Vectorizando {len(vectors_to_upload)} ofertas...")
+        print(f"Vectorizando {len(vectors_to_upload)} ofertas...")
         embeddings = encoder.encode(vectors_to_upload, batch_size=64, show_progress_bar=True).tolist()
         
         BATCH_SIZE = 250
@@ -181,9 +182,11 @@ def cargar_datos():
                     wait=True
                 )
             except Exception as e:
-                print(f"⚠️ Error lote {i}: {e}")
+                print(f"Error lote {i}: {e}")
 
-    print("🎉 Carga Finalizada.")
+    print("Carga Finalizada.")
 
 if __name__ == "__main__":
-    cargar_datos()
+    df = limpiar_datos()
+    if df is not None:
+        cargar_datos_qdrant(df)
