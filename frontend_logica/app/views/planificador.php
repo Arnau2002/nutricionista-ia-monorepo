@@ -481,6 +481,21 @@
                 </div>
             </div>
         </div>
+
+        <!-- ===== SECCIÓN MAPA ===== -->
+        <div id="mapa-wrapper" style="display:none; margin-top: 35px;">
+            <h3 style="color: #2c3e50; margin-bottom: 8px;">🗺️ Supermercados cerca de ti en Valencia</h3>
+            <p style="color: #555; margin-bottom: 12px; font-size: 0.95em;">
+                El precio mostrado en cada pin es el coste total de tu lista de la compra en esa cadena.
+                Haz clic en un supermercado para trazar la ruta desde tu ubicación.
+            </p>
+            <div id="mapa-supermercados" style="height: 480px; border-radius: 10px; border: 2px solid #ddd; box-shadow: 0 2px 8px rgba(0,0,0,0.12);"></div>
+            <p style="font-size: 0.8em; color: #aaa; margin-top: 6px;">
+                📍 Ubicaciones de tiendas orientativas. Ruta calculada con OpenStreetMap/OSRM.
+            </p>
+        </div>
+        <!-- ===== FIN MAPA ===== -->
+
     </div>
 </div>
 
@@ -829,9 +844,25 @@
         document.getElementById('d-missing').innerHTML = dMiss.length ? `❌ No disponible: ${dMiss.join(", ")}` : "";
     }
 
+<<<<<<< Updated upstream
     function crearHtmlElemento(p, tienda, isMix = false) {
         if (!p) {
             return `
+=======
+    // Missing Footers
+    const mMiss = comp.cesta_mercadona.productos_no_encontrados;
+    const dMiss = comp.cesta_dia.productos_no_encontrados;
+    document.getElementById('m-missing').innerHTML = mMiss.length ? `❌ No disponible: ${mMiss.join(", ")}` : "";
+    document.getElementById('d-missing').innerHTML = dMiss.length ? `❌ No disponible: ${dMiss.join(", ")}` : "";
+
+    // Inicializar (o actualizar) el mapa con los precios actuales
+    inicializarMapa(comp.cesta_mercadona.total, comp.cesta_dia.total);
+}
+
+function crearHtmlElemento(p, tienda, isMix = false) {
+    if (!p) {
+        return `
+>>>>>>> Stashed changes
         <div class="prod-item" style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; color: #999; font-style: italic; height: 100%;">
             <div style="width: 50px; height: 50px; background: #f9f9f9; border: 1px dashed #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.2em;">❓</div>
             <div style="flex: 1;">No disponible en ${tienda}</div>
@@ -914,4 +945,188 @@
             btn.disabled = false;
         }
     }
+<<<<<<< Updated upstream
+=======
+}
+
+// =====================================================================
+// MAPA DE SUPERMERCADOS
+// =====================================================================
+let mapaLeaflet = null;
+let routingControl = null;
+
+// Tiendas reales (coordenadas orientativas) de Valencia ciudad
+const SUPERMERCADOS_VALENCIA = [
+    // --- MERCADONA ---
+    { cadena: 'mercadona', nombre: 'Mercadona Gran Vía',       lat: 39.4697, lng: -0.3755, direccion: 'Av. Marqués de Sotelo, Valencia' },
+    { cadena: 'mercadona', nombre: 'Mercadona Sagunto',         lat: 39.4804, lng: -0.3766, direccion: 'C/ Sagunto, Valencia' },
+    { cadena: 'mercadona', nombre: 'Mercadona Ruzafa',          lat: 39.4586, lng: -0.3737, direccion: 'Av. Giorgeta, Valencia' },
+    { cadena: 'mercadona', nombre: 'Mercadona Campanar',        lat: 39.4847, lng: -0.3942, direccion: 'Av. Constitución, Valencia' },
+    { cadena: 'mercadona', nombre: 'Mercadona Benimaclet',      lat: 39.4820, lng: -0.3618, direccion: 'C/ Eduardo Boscá, Valencia' },
+    { cadena: 'mercadona', nombre: 'Mercadona Patraix',         lat: 39.4550, lng: -0.3932, direccion: 'C/ Tres Forques, Valencia' },
+    { cadena: 'mercadona', nombre: 'Mercadona Quatre Carreres', lat: 39.4611, lng: -0.4015, direccion: 'Av. del Cid, Valencia' },
+    // --- DÍA ---
+    { cadena: 'dia', nombre: 'Día San Vicente',  lat: 39.4630, lng: -0.3810, direccion: 'C/ San Vicente Mártir, Valencia' },
+    { cadena: 'dia', nombre: 'Día Russafa',      lat: 39.4599, lng: -0.3757, direccion: 'Av. de la Plata, Valencia' },
+    { cadena: 'dia', nombre: 'Día Torrefiel',    lat: 39.4898, lng: -0.3770, direccion: 'C/ Torrefiel, Valencia' },
+    { cadena: 'dia', nombre: 'Día Cabanyal',     lat: 39.4673, lng: -0.3546, direccion: 'Av. del Puerto, Valencia' },
+    { cadena: 'dia', nombre: 'Día Campanar',     lat: 39.4861, lng: -0.3913, direccion: 'C/ Burjassot, Valencia' },
+    { cadena: 'dia', nombre: 'Día Patraix',      lat: 39.4540, lng: -0.3954, direccion: 'C/ Fontanars dels Alforins, Valencia' },
+];
+
+function inicializarMapa(precioMercadona, precioDia) {
+    // Guard: si Leaflet no está disponible aún, reintentar tras 300ms
+    if (typeof L === 'undefined') {
+        setTimeout(() => inicializarMapa(precioMercadona, precioDia), 300);
+        return;
+    }
+
+    const wrapper = document.getElementById('mapa-wrapper');
+    wrapper.style.display = 'block';
+
+    // Si el mapa ya existe, solo actualizar popups y forzar redibujado
+    if (mapaLeaflet) {
+        setTimeout(() => mapaLeaflet.invalidateSize(), 100);
+        mapaLeaflet.eachLayer(layer => {
+            if (layer instanceof L.Marker) {
+                const store = layer._storeData;
+                if (store) {
+                    layer.setPopupContent(construirPopup(store, precioMercadona, precioDia));
+                }
+            }
+        });
+        return;
+    }
+
+    // Esperar a que el navegador renderice el contenedor antes de inicializar Leaflet
+    requestAnimationFrame(() => {
+    setTimeout(() => {
+
+    // Inicializar mapa centrado en Valencia
+    mapaLeaflet = L.map('mapa-supermercados').setView([39.4699, -0.3763], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }).addTo(mapaLeaflet);
+
+    // Iconos personalizados
+    const iconoMercadona = L.divIcon({
+        className: '',
+        html: `<div style="background:#009432;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">🟢</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -38]
+    });
+
+    const iconoDia = L.divIcon({
+        className: '',
+        html: `<div style="background:#EA2027;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">🔴</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -38]
+    });
+
+    SUPERMERCADOS_VALENCIA.forEach(store => {
+        const icono = store.cadena === 'mercadona' ? iconoMercadona : iconoDia;
+        const marker = L.marker([store.lat, store.lng], { icon: icono })
+            .addTo(mapaLeaflet)
+            .bindPopup(construirPopup(store, precioMercadona, precioDia), { maxWidth: 280 });
+        marker._storeData = store;
+
+        marker.on('click', function() {
+            marker.openPopup();
+        });
+    });
+
+    // Leyenda
+    const leyenda = L.control({ position: 'bottomright' });
+    leyenda.onAdd = () => {
+        const div = L.DomUtil.create('div');
+        div.innerHTML = `
+            <div style="background:white;padding:10px 14px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);font-size:0.85em;line-height:1.8;">
+                <div><span style="color:#009432;font-weight:bold;">●</span> Mercadona</div>
+                <div><span style="color:#EA2027;font-weight:bold;">●</span> Día</div>
+            </div>`;
+        return div;
+    };
+    leyenda.addTo(mapaLeaflet);
+
+    }); // fin setTimeout
+    }); // fin requestAnimationFrame
+}
+
+function construirPopup(store, precioMercadona, precioDia) {
+    const esMercadona = store.cadena === 'mercadona';
+    const color = esMercadona ? '#009432' : '#EA2027';
+    const precio = esMercadona ? precioMercadona : precioDia;
+    const precioHtml = precio != null
+        ? `<div style="font-size:1.4em;font-weight:bold;color:${color};margin:8px 0;">${precio.toFixed(2)} €</div><div style="font-size:0.8em;color:#777;">coste de tu lista de la compra</div>`
+        : `<div style="color:#aaa;font-size:0.85em;margin:8px 0;">Busca precios primero</div>`;
+
+    const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${store.lat},${store.lng}&travelmode=walking`;
+
+    return `
+        <div style="font-family:sans-serif;min-width:200px;">
+            <div style="font-weight:bold;font-size:1em;color:${color};border-bottom:2px solid ${color};padding-bottom:4px;margin-bottom:6px;">${store.nombre}</div>
+            <div style="color:#555;font-size:0.85em;margin-bottom:4px;">📍 ${store.direccion}</div>
+            ${precioHtml}
+            <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
+                <button onclick="trazarRuta(${store.lat}, ${store.lng})"
+                    style="background:#0984e3;color:white;border:none;padding:7px 12px;border-radius:5px;cursor:pointer;font-size:0.85em;font-weight:bold;">
+                    🗺️ Ruta aquí
+                </button>
+                <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer"
+                    style="background:#34495e;color:white;padding:7px 12px;border-radius:5px;font-size:0.85em;font-weight:bold;text-decoration:none;display:inline-block;">
+                    📱 Google Maps
+                </a>
+            </div>
+        </div>`;
+}
+
+function trazarRuta(destLat, destLng) {
+    if (!mapaLeaflet || typeof L === 'undefined') return;
+
+    if (!navigator.geolocation) {
+        alert('Tu navegador no soporta geolocalización. Usa el botón de Google Maps.');
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            const origen = [pos.coords.latitude, pos.coords.longitude];
+
+            // Eliminar ruta anterior si existe
+            if (routingControl) {
+                mapaLeaflet.removeControl(routingControl);
+                routingControl = null;
+            }
+
+            routingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(origen[0], origen[1]),
+                    L.latLng(destLat, destLng)
+                ],
+                routeWhileDragging: false,
+                addWaypoints: false,
+                draggableWaypoints: false,
+                fitSelectedRoutes: true,
+                show: true,
+                lineOptions: {
+                    styles: [{ color: '#0984e3', weight: 5, opacity: 0.8 }]
+                },
+                createMarker: (i, wp) => {
+                    const label = i === 0 ? '📍 Tú' : '🛒 Destino';
+                    return L.marker(wp.latLng).bindPopup(label);
+                }
+            }).addTo(mapaLeaflet);
+        },
+        err => {
+            alert('No se pudo obtener tu ubicación. Asegúrate de dar permiso de localización al navegador.');
+            console.warn('Geolocation error:', err);
+        },
+        { timeout: 8000 }
+    );
+}
+>>>>>>> Stashed changes
 </script>

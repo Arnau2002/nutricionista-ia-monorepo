@@ -4,6 +4,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title><?= htmlspecialchars($title ?? $appName) ?> — <?= htmlspecialchars($appName) ?></title>
   <link rel="stylesheet" href="/css/style.css">
+  <!-- Leaflet.js para el mapa de supermercados -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css">
 </head>
 <body>
   <header class="site-header">
@@ -36,5 +39,8 @@
   <footer>
     <p class="muted">Nutricionista.IA • <?= date('Y') ?></p>
   </footer>
+  <!-- Leaflet scripts al final del body para garantizar disponibilidad -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WPeE=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 </body>
 </html>
