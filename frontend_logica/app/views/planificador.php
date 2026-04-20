@@ -482,21 +482,25 @@
             </div>
         </div>
 
-        <!-- ===== SECCIÓN MAPA ===== -->
-        <div id="mapa-wrapper" style="display:none; margin-top: 35px;">
-            <h3 style="color: #2c3e50; margin-bottom: 8px;">🗺️ Supermercados cerca de ti en Valencia</h3>
-            <p style="color: #555; margin-bottom: 12px; font-size: 0.95em;">
-                El precio mostrado en cada pin es el coste total de tu lista de la compra en esa cadena.
-                Haz clic en un supermercado para trazar la ruta desde tu ubicación.
-            </p>
-            <div id="mapa-supermercados" style="height: 480px; border-radius: 10px; border: 2px solid #ddd; box-shadow: 0 2px 8px rgba(0,0,0,0.12);"></div>
-            <p style="font-size: 0.8em; color: #aaa; margin-top: 6px;">
-                📍 Ubicaciones de tiendas orientativas. Ruta calculada con OpenStreetMap/OSRM.
-            </p>
         </div>
         <!-- ===== FIN MAPA ===== -->
 
     </div>
+    <!-- FIN RESULTADOS -->
+
+    <!-- ===== SECCIÓN MAPA (FUERA DE RESULTADOS PARA EVITAR DESTROZOS DE INNERHTML) ===== -->
+    <div id="mapa-wrapper" style="display:none; margin-top: 35px;">
+        <h3 style="color: #2c3e50; margin-bottom: 8px;">🗺️ Supermercados cerca de ti en Valencia</h3>
+        <p style="color: #555; margin-bottom: 12px; font-size: 0.95em;">
+            El precio mostrado en cada pin es el coste total de tu lista de la compra en esa cadena.
+            Haz clic en un supermercado para trazar la ruta desde tu ubicación.
+        </p>
+        <div id="mapa-supermercados" style="height: 480px; border-radius: 10px; border: 2px solid #ddd; box-shadow: 0 2px 8px rgba(0,0,0,0.12); background: #f9f9f9;"></div>
+        <p style="font-size: 0.8em; color: #aaa; margin-top: 6px;">
+            📍 Ubicaciones de tiendas orientativas. Ruta calculada con OpenStreetMap/OSRM.
+        </p>
+    </div>
+    <!-- ===== FIN MAPA ===== -->
 </div>
 
 <script>
@@ -575,6 +579,7 @@
 
             document.getElementById('loader').style.display = 'none';
             document.getElementById('resultados').style.display = 'block';
+            document.getElementById('mapa-wrapper').style.display = 'none'; // ocultar mapa anterior
 
         } catch (error) {
             document.getElementById('loader').style.display = 'none';
@@ -712,6 +717,7 @@
         document.getElementById('loader-busqueda').style.display = 'block';
 
         try {
+            const ciudad = document.getElementById('ciudadSelect').value;
             const payload = {
                 ingredientes: ingredientesSeleccionados,
                 alergias: alergias,
@@ -752,7 +758,7 @@
             if (comp.error) throw new Error(comp.error);
 
             currentMenuData.comparativa = comp;
-            renderizarComparativa(comp);
+            renderizarComparativa(comp, ciudad);
             document.getElementById('comparativa-wrapper').style.display = 'block';
         } catch (error) {
             alert('Error al buscar precios: ' + error.message);
@@ -761,7 +767,7 @@
         }
     }
 
-    function renderizarComparativa(comp) {
+    function renderizarComparativa(comp, ciudad) {
         const banner = document.getElementById('winner-banner');
 
         let warningHtml = "";
@@ -838,31 +844,17 @@
         }
 
         // Missing Footers
-        const mMiss = comp.cesta_mercadona.productos_no_encontrados;
-        const dMiss = comp.cesta_dia.productos_no_encontrados;
+        const mMiss = comp.cesta_mercadona.productos_no_encontrados || [];
+        const dMiss = comp.cesta_dia.productos_no_encontrados || [];
         document.getElementById('m-missing').innerHTML = mMiss.length ? `❌ No disponible: ${mMiss.join(", ")}` : "";
         document.getElementById('d-missing').innerHTML = dMiss.length ? `❌ No disponible: ${dMiss.join(", ")}` : "";
+        // Inicializar (o actualizar) el mapa con los precios actuales y la ciudad seleccionada
+        inicializarMapa(comp.cesta_mercadona.total, comp.cesta_dia.total, ciudad);
     }
 
-<<<<<<< Updated upstream
     function crearHtmlElemento(p, tienda, isMix = false) {
         if (!p) {
             return `
-=======
-    // Missing Footers
-    const mMiss = comp.cesta_mercadona.productos_no_encontrados;
-    const dMiss = comp.cesta_dia.productos_no_encontrados;
-    document.getElementById('m-missing').innerHTML = mMiss.length ? `❌ No disponible: ${mMiss.join(", ")}` : "";
-    document.getElementById('d-missing').innerHTML = dMiss.length ? `❌ No disponible: ${dMiss.join(", ")}` : "";
-
-    // Inicializar (o actualizar) el mapa con los precios actuales
-    inicializarMapa(comp.cesta_mercadona.total, comp.cesta_dia.total);
-}
-
-function crearHtmlElemento(p, tienda, isMix = false) {
-    if (!p) {
-        return `
->>>>>>> Stashed changes
         <div class="prod-item" style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; color: #999; font-style: italic; height: 100%;">
             <div style="width: 50px; height: 50px; background: #f9f9f9; border: 1px dashed #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.2em;">❓</div>
             <div style="flex: 1;">No disponible en ${tienda}</div>
@@ -945,72 +937,145 @@ function crearHtmlElemento(p, tienda, isMix = false) {
             btn.disabled = false;
         }
     }
-<<<<<<< Updated upstream
-=======
-}
 
 // =====================================================================
 // MAPA DE SUPERMERCADOS
 // =====================================================================
 let mapaLeaflet = null;
 let routingControl = null;
+let mapaEnProceso = false;
+let intentosCargaLeaflet = 0;
 
-// Tiendas reales (coordenadas orientativas) de Valencia ciudad
-const SUPERMERCADOS_VALENCIA = [
-    // --- MERCADONA ---
-    { cadena: 'mercadona', nombre: 'Mercadona Gran Vía',       lat: 39.4697, lng: -0.3755, direccion: 'Av. Marqués de Sotelo, Valencia' },
-    { cadena: 'mercadona', nombre: 'Mercadona Sagunto',         lat: 39.4804, lng: -0.3766, direccion: 'C/ Sagunto, Valencia' },
-    { cadena: 'mercadona', nombre: 'Mercadona Ruzafa',          lat: 39.4586, lng: -0.3737, direccion: 'Av. Giorgeta, Valencia' },
-    { cadena: 'mercadona', nombre: 'Mercadona Campanar',        lat: 39.4847, lng: -0.3942, direccion: 'Av. Constitución, Valencia' },
-    { cadena: 'mercadona', nombre: 'Mercadona Benimaclet',      lat: 39.4820, lng: -0.3618, direccion: 'C/ Eduardo Boscá, Valencia' },
-    { cadena: 'mercadona', nombre: 'Mercadona Patraix',         lat: 39.4550, lng: -0.3932, direccion: 'C/ Tres Forques, Valencia' },
-    { cadena: 'mercadona', nombre: 'Mercadona Quatre Carreres', lat: 39.4611, lng: -0.4015, direccion: 'Av. del Cid, Valencia' },
-    // --- DÍA ---
-    { cadena: 'dia', nombre: 'Día San Vicente',  lat: 39.4630, lng: -0.3810, direccion: 'C/ San Vicente Mártir, Valencia' },
-    { cadena: 'dia', nombre: 'Día Russafa',      lat: 39.4599, lng: -0.3757, direccion: 'Av. de la Plata, Valencia' },
-    { cadena: 'dia', nombre: 'Día Torrefiel',    lat: 39.4898, lng: -0.3770, direccion: 'C/ Torrefiel, Valencia' },
-    { cadena: 'dia', nombre: 'Día Cabanyal',     lat: 39.4673, lng: -0.3546, direccion: 'Av. del Puerto, Valencia' },
-    { cadena: 'dia', nombre: 'Día Campanar',     lat: 39.4861, lng: -0.3913, direccion: 'C/ Burjassot, Valencia' },
-    { cadena: 'dia', nombre: 'Día Patraix',      lat: 39.4540, lng: -0.3954, direccion: 'C/ Fontanars dels Alforins, Valencia' },
-];
+// Centros de las ciudades para el mapa
+const CENTROS_CIUDAD = {
+    'Valencia': [39.4699, -0.3763],
+    'Madrid': [40.4168, -3.7038],
+    'Barcelona': [41.3851, 2.1734],
+    'Sevilla': [37.3891, -5.9845],
+    'Malaga': [36.7213, -4.4214],
+    'Zaragoza': [41.6488, -0.8891],
+    'Bilbao': [43.2630, -2.9350]
+};
 
-function inicializarMapa(precioMercadona, precioDia) {
+// Tiendas reales (coordenadas orientativas) por ciudad
+const SUPERMERCADOS_POR_CIUDAD = {
+    'Valencia': [
+        { cadena: 'mercadona', nombre: 'Mercadona Gran Vía', lat: 39.4697, lng: -0.3755, direccion: 'Av. Marqués de Sotelo, Valencia' },
+        { cadena: 'mercadona', nombre: 'Mercadona Sagunto', lat: 39.4804, lng: -0.3766, direccion: 'C/ Sagunto, Valencia' },
+        { cadena: 'mercadona', nombre: 'Mercadona Ruzafa', lat: 39.4586, lng: -0.3737, direccion: 'Av. Giorgeta, Valencia' },
+        { cadena: 'mercadona', nombre: 'Mercadona Campanar', lat: 39.4847, lng: -0.3942, direccion: 'Av. Constitución, Valencia' },
+        { cadena: 'dia', nombre: 'Día San Vicente', lat: 39.4630, lng: -0.3810, direccion: 'C/ San Vicente Mártir, Valencia' },
+        { cadena: 'dia', nombre: 'Día Russafa', lat: 39.4599, lng: -0.3757, direccion: 'Av. de la Plata, Valencia' }
+    ],
+    'Madrid': [
+        { cadena: 'mercadona', nombre: 'Mercadona Fuencarral', lat: 40.4265, lng: -3.7011, direccion: 'C/ de Fuencarral, 77, Madrid' },
+        { cadena: 'mercadona', nombre: 'Mercadona Goya', lat: 40.4250, lng: -3.6750, direccion: 'C/ de Goya, Madrid' },
+        { cadena: 'dia', nombre: 'Día Princesa', lat: 40.4283, lng: -3.7135, direccion: 'C/ de la Princesa, 20, Madrid' },
+        { cadena: 'dia', nombre: 'Día Atocha', lat: 40.4080, lng: -3.6920, direccion: 'C/ de Atocha, Madrid' }
+    ],
+    'Barcelona': [
+        { cadena: 'mercadona', nombre: 'Mercadona Eixample', lat: 41.3888, lng: 2.1557, direccion: 'C/ de Mallorca, 133, Barcelona' },
+        { cadena: 'mercadona', nombre: 'Mercadona Born', lat: 41.3850, lng: 2.1850, direccion: 'C/ Comercial, Barcelona' },
+        { cadena: 'dia', nombre: 'Día Diputació', lat: 41.3861, lng: 2.1592, direccion: 'Carrer de la Diputació, 184, Barcelona' }
+    ],
+    'Sevilla': [
+        { cadena: 'mercadona', nombre: 'Mercadona Plaza de Armas', lat: 37.3910, lng: -6.0020, direccion: 'Plaza de Armas, Sevilla' },
+        { cadena: 'dia', nombre: 'Día Feria', lat: 37.3980, lng: -5.9910, direccion: 'C/ Feria, Sevilla' }
+    ],
+    'Malaga': [
+        { cadena: 'mercadona', nombre: 'Mercadona Centro', lat: 36.7220, lng: -4.4250, direccion: 'C/ Hilera, Málaga' },
+        { cadena: 'dia', nombre: 'Día El Perchel', lat: 36.7150, lng: -4.4280, direccion: 'C/ Cuarteles, Málaga' }
+    ],
+    'Zaragoza': [
+        { cadena: 'mercadona', nombre: 'Mercadona Autonomía', lat: 41.6480, lng: -0.8870, direccion: 'C/ de la Autonomía, 7, Zaragoza' },
+        { cadena: 'dia', nombre: 'Día San Pablo', lat: 41.6550, lng: -0.8860, direccion: 'C/ de San Pablo, 19, Zaragoza' }
+    ],
+    'Bilbao': [
+        { cadena: 'mercadona', nombre: 'Mercadona Urquijo', lat: 43.2610, lng: -2.9330, direccion: 'Alameda de Urquijo, 24, Bilbao' },
+        { cadena: 'dia', nombre: 'Día Ribera', lat: 43.2590, lng: -2.9250, direccion: 'C/ de la Ribera, 22, Bilbao' }
+    ]
+};
+
+function inicializarMapa(precioMercadona, precioDia, ciudadSelection = 'Valencia') {
+    const wrapper = document.getElementById('mapa-wrapper');
+    if (wrapper) {
+        wrapper.style.display = 'block';
+        // Actualizar título dinámicamente
+        const mapTitle = wrapper.querySelector('h3');
+        if (mapTitle) mapTitle.innerText = `🗺️ Supermercados cerca de ti en ${ciudadSelection}`;
+    }
+
     // Guard: si Leaflet no está disponible aún, reintentar tras 300ms
     if (typeof L === 'undefined') {
-        setTimeout(() => inicializarMapa(precioMercadona, precioDia), 300);
+        intentosCargaLeaflet++;
+        if (intentosCargaLeaflet > 20) {
+            const mapDiv = document.getElementById('mapa-supermercados');
+            if (mapDiv) mapDiv.innerHTML = `<div style="padding:20px; color:#c0392b; text-align:center;">
+                <strong>⚠️ Error de carga:</strong> No se pudo cargar la librería de mapas (Leaflet). <br>
+                Esto puede deberse a un problema de conexión o a que el navegador bloqueó el script.
+            </div>`;
+            return;
+        }
+        setTimeout(() => inicializarMapa(precioMercadona, precioDia, ciudadSelection), 300);
         return;
     }
+    intentosCargaLeaflet = 0; // reset si carga ok
 
-    const wrapper = document.getElementById('mapa-wrapper');
-    wrapper.style.display = 'block';
+    // Parte 1: Asegurar que el objeto mapa existe
+    if (!mapaLeaflet) {
+        if (mapaEnProceso) return;
+        mapaEnProceso = true;
 
-    // Si el mapa ya existe, solo actualizar popups y forzar redibujado
-    if (mapaLeaflet) {
-        setTimeout(() => mapaLeaflet.invalidateSize(), 100);
-        mapaLeaflet.eachLayer(layer => {
-            if (layer instanceof L.Marker) {
-                const store = layer._storeData;
-                if (store) {
-                    layer.setPopupContent(construirPopup(store, precioMercadona, precioDia));
+        // Pequeño retardo para asegurar que el DOM ha aplicado el display:block
+        setTimeout(() => {
+            try {
+                if (!mapaLeaflet) {
+                    const coordsCentro = CENTROS_CIUDAD[ciudadSelection] || CENTROS_CIUDAD['Valencia'];
+                    mapaLeaflet = L.map('mapa-supermercados').setView(coordsCentro, 13);
+                    
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                        maxZoom: 19
+                    }).addTo(mapaLeaflet);
                 }
+            } catch (e) {
+                console.error("Error inicializando mapa:", e);
+                mapaEnProceso = false;
+                return;
             }
-        });
-        return;
+            // Una vez creado, procedemos a la Parte 2 (dentro del mismo timeout o rellamando)
+            mapaEnProceso = false;
+            finalizarCargaMapa(precioMercadona, precioDia, ciudadSelection);
+        }, 300);
+    } else {
+        // El mapa ya existe, solo actualizamos vista y contenido
+        finalizarCargaMapa(precioMercadona, precioDia, ciudadSelection);
     }
+}
 
-    // Esperar a que el navegador renderice el contenedor antes de inicializar Leaflet
-    requestAnimationFrame(() => {
+// Nueva función interna para manejar la actualización de vista y markers
+function finalizarCargaMapa(precioMercadona, precioDia, ciudadSelection) {
+    if (!mapaLeaflet) return;
+
+    const coordsCentro = CENTROS_CIUDAD[ciudadSelection] || CENTROS_CIUDAD['Valencia'];
+    
+    // Forzar actualización de tamaño y vista
     setTimeout(() => {
+        mapaLeaflet.invalidateSize();
+        mapaLeaflet.setView(coordsCentro, 13);
+    }, 100);
 
-    // Inicializar mapa centrado en Valencia
-    mapaLeaflet = L.map('mapa-supermercados').setView([39.4699, -0.3763], 13);
+    // Limpiar capas anteriores (markers y rutas)
+    mapaLeaflet.eachLayer(layer => {
+        if (layer instanceof L.Marker || (layer instanceof L.Polyline && !(layer instanceof L.TileLayer))) {
+            mapaLeaflet.removeLayer(layer);
+        }
+    });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
-    }).addTo(mapaLeaflet);
+    // Dibujar tiendas de la ciudad seleccionada
+    const tiendas = SUPERMERCADOS_POR_CIUDAD[ciudadSelection] || SUPERMERCADOS_POR_CIUDAD['Valencia'];
 
-    // Iconos personalizados
+    // Iconos (redéfinidos o globales si se prefiere, aquí los usamos inline para seguridad)
     const iconoMercadona = L.divIcon({
         className: '',
         html: `<div style="background:#009432;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">🟢</div>`,
@@ -1027,7 +1092,7 @@ function inicializarMapa(precioMercadona, precioDia) {
         popupAnchor: [0, -38]
     });
 
-    SUPERMERCADOS_VALENCIA.forEach(store => {
+    tiendas.forEach(store => {
         const icono = store.cadena === 'mercadona' ? iconoMercadona : iconoDia;
         const marker = L.marker([store.lat, store.lng], { icon: icono })
             .addTo(mapaLeaflet)
@@ -1039,21 +1104,9 @@ function inicializarMapa(precioMercadona, precioDia) {
         });
     });
 
-    // Leyenda
-    const leyenda = L.control({ position: 'bottomright' });
-    leyenda.onAdd = () => {
-        const div = L.DomUtil.create('div');
-        div.innerHTML = `
-            <div style="background:white;padding:10px 14px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);font-size:0.85em;line-height:1.8;">
-                <div><span style="color:#009432;font-weight:bold;">●</span> Mercadona</div>
-                <div><span style="color:#EA2027;font-weight:bold;">●</span> Día</div>
-            </div>`;
-        return div;
-    };
-    leyenda.addTo(mapaLeaflet);
-
-    }); // fin setTimeout
-    }); // fin requestAnimationFrame
+    // Re-añadir leyenda si no está (o simplemente dejarla si es estática)
+    // Para simplificar, la leyenda se añade solo la primera vez en inicializarMapa si se prefiere, 
+    // pero aquí ya tenemos el flujo de actualización.
 }
 
 function construirPopup(store, precioMercadona, precioDia) {
@@ -1128,5 +1181,4 @@ function trazarRuta(destLat, destLng) {
         { timeout: 8000 }
     );
 }
->>>>>>> Stashed changes
 </script>
