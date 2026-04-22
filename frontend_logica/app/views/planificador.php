@@ -2,9 +2,15 @@
 // app/Views/planificador.php
 ?>
 <style>
-    /* Forzamos que todo el contenedor use texto oscuro */
+    /* Forzamos que todo el contenedor use el tema oscuro/glassmorphism */
     .planificador-container {
-        color: #111;
+        color: var(--text);
+        background: rgba(17, 24, 39, .6);
+        border: 1px solid #1e293b;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
+        padding: 30px;
+        border-radius: 16px;
     }
 
     .chef-header {
@@ -13,84 +19,99 @@
     }
 
     .chef-header h2 {
-        color: #2c3e50;
-        font-weight: bold;
+        color: #fff;
+        font-weight: 800;
+        font-size: 2rem;
+        letter-spacing: -0.5px;
+    }
+
+    .chef-header p {
+        color: #94a3b8;
+        font-size: 1.1em;
     }
 
     .chef-input-group {
         display: flex;
-        gap: 10px;
-        max-width: 600px;
-        margin: 0 auto;
+        gap: 12px;
+        max-width: 700px;
+        margin: 0 auto 10px;
     }
 
     .chef-input {
         flex: 1;
-        padding: 12px;
-        border: 2px solid #0984e3;
-        border-radius: 6px;
+        padding: 14px 18px;
+        border-radius: 12px;
+        border: 1px solid #334155;
+        background: #0f172a;
+        color: #e2e8f0;
         font-size: 1.1em;
-        color: #000;
-        background: #fff;
+        transition: all 0.3s ease;
+    }
+    
+    .chef-input:focus {
+        border-color: var(--pri);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        outline: none;
     }
 
     .btn-chef {
-        background: #0984e3;
+        background: linear-gradient(135deg, var(--pri) 0%, #2563eb 100%);
         color: white;
         border: none;
-        padding: 12px 24px;
-        border-radius: 6px;
-        font-weight: bold;
+        padding: 14px 28px;
+        border-radius: 12px;
+        font-weight: 700;
         cursor: pointer;
+        font-size: 1.1em;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
     }
 
     .btn-chef:hover {
-        background: #0769b5;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
     }
 
-    /* Botón Guardar */
     .btn-guardar {
-        background: #27ae60;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         color: white;
         border: none;
         padding: 12px 24px;
-        border-radius: 6px;
-        font-weight: bold;
+        border-radius: 10px;
+        font-weight: 600;
         cursor: pointer;
-        font-size: 1.1em;
+        font-size: 1.05em;
         margin-top: 10px;
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
     }
 
     .btn-guardar:hover {
-        background: #219150;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(16, 185, 129, 0.3);
     }
 
     /* Loader de cocina */
-    #loader {
+    #loader, #loader-busqueda {
         display: none;
         text-align: center;
         margin: 40px 0;
-        color: #333;
+        color: #cbd5e1;
     }
 
     .spinner {
-        border: 4px solid #e0e0e0;
-        border-top: 4px solid #0984e3;
+        border: 4px solid #1e293b;
+        border-top: 4px solid var(--pri-light);
         border-radius: 50%;
-        width: 40px;
-        height: 40px;
+        width: 48px;
+        height: 48px;
         animation: spin 1s linear infinite;
         margin: 0 auto 15px;
     }
 
     @keyframes spin {
-        0% {
-            transform: rotate(0deg);
-        }
-
-        100% {
-            transform: rotate(360deg);
-        }
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 
     /* Resultados */
@@ -99,40 +120,130 @@
         margin-top: 30px;
         animation: fadeIn 0.5s;
     }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 
-    .menu-grid {
+    @keyframes shimmer {
+        0% { background-position: -468px 0; }
+        100% { background-position: 468px 0; }
+    }
+
+    .menu-container {
+        display: flex;
+        flex-direction: column;
+        gap: 40px;
+        margin-bottom: 50px;
+    }
+
+    .dia-grupo {
+        background: rgba(15, 23, 42, 0.4);
+        padding: 25px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .dia-heading {
+        font-size: 1.5em;
+        font-weight: 800;
+        color: var(--pri-light);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 2px solid rgba(56, 189, 248, 0.2);
+        padding-bottom: 10px;
+    }
+
+    .platos-fila {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 15px;
-        margin-bottom: 30px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+        .platos-fila { grid-template-columns: 1fr; }
     }
 
     .dia-card {
-        background: #fdfbf7;
-        border-left: 4px solid #f39c12;
-        padding: 15px;
-        border-radius: 6px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        color: #000;
+        background: rgba(30, 41, 59, 0.7);
+        border-left: 4px solid var(--pri-light);
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        color: #f1f5f9;
+        border: 1px solid #334155;
+        border-left-width: 4px;
+        overflow: hidden;
+        position: relative;
+        transition: transform 0.3s ease;
+        display: flex;
+        flex-direction: column;
     }
 
-    .dia-titulo {
-        color: #d68910;
-        font-weight: bold;
+    .dia-card:hover { transform: translateY(-5px); }
+
+    .plato-img {
+        width: calc(100% + 40px);
+        height: 160px;
+        margin: -20px -20px 15px -20px;
+        background-color: #1e293b;
+        position: relative;
+        overflow: hidden;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .plato-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+    }
+
+    .plato-img.loaded img {
+        opacity: 1;
+    }
+
+    .plato-img::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(to right, transparent 8%, #334155 18%, transparent 33%);
+        background-size: 800px 160px;
+        animation: shimmer 2s infinite linear;
+        z-index: 10;
+        transition: opacity 0.5s ease;
+    }
+
+    .plato-img.loaded::before {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .dia-card .momento-tag {
+        color: var(--pri-light);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.75em;
         margin-bottom: 5px;
-        font-size: 1.1em;
+        opacity: 0.8;
     }
 
-    .plato-nombre {
-        font-weight: bold;
-        color: #000;
-        margin-bottom: 8px;
+    .dia-card .plato-nombre {
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 10px;
         font-size: 1.15em;
+        line-height: 1.2;
     }
 
-    .plato-desc {
-        color: #333;
-        font-size: 0.95em;
+    .dia-card .plato-desc {
+        color: #94a3b8;
+        font-size: 0.9em;
         line-height: 1.4;
     }
 
@@ -148,58 +259,38 @@
         flex: 1;
         min-width: 300px;
         padding: 20px;
-        border-radius: 8px;
-        border: 1px solid #ccc;
-        color: #000;
+        border-radius: 12px;
+        border: 1px solid #334155;
+        background: #0f172a;
+        color: var(--text);
     }
 
-    .card-mercadona {
-        background: #f4fbf7;
-        border-top: 5px solid #009432;
-    }
-
-    .card-mercadona h3 {
-        color: #009432;
-        border-bottom: 2px solid #009432;
-        padding-bottom: 5px;
-        margin-top: 0;
-    }
-
-    .card-dia {
-        background: #fff5f6;
-        border-top: 5px solid #EA2027;
-    }
-
-    .card-dia h3 {
-        color: #EA2027;
-        border-bottom: 2px solid #EA2027;
-        padding-bottom: 5px;
-        margin-top: 0;
-    }
+    .card-mercadona { background: rgba(0, 148, 50, 0.05); border-top: 5px solid #00b894; }
+    .card-dia { background: rgba(234, 32, 39, 0.05); border-top: 5px solid #ff7675; }
 
     .price-tag {
-        font-size: 1.6em;
+        font-size: 1.8em;
         margin: 15px 0;
-        font-weight: bold;
-        color: #111;
+        font-weight: 800;
+        color: #fff;
     }
 
     .prod-item {
-        border-bottom: 1px solid #ddd;
-        padding: 10px 0;
+        border-bottom: 1px solid #1e293b;
+        padding: 12px 0;
         font-size: 0.95em;
-        color: #000;
+        color: #cbd5e1;
     }
 
     .prod-name {
         font-weight: 700;
-        color: #000;
-        margin-bottom: 3px;
+        color: #f8fafc;
+        margin-bottom: 4px;
         display: block;
     }
 
     .prod-meta {
-        color: #444;
+        color: #64748b;
         font-size: 0.9em;
         font-weight: 500;
     }
@@ -207,178 +298,289 @@
     .missing-box {
         margin-top: 15px;
         padding: 15px;
-        background: #fdedec;
-        border: 1px solid #e6b0aa;
-        border-radius: 6px;
-        color: #c0392b;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 8px;
+        color: #fca5a5;
         font-size: 0.9em;
     }
 
     .winner-banner {
-        background: #d4edda;
-        color: #155724;
-        padding: 15px;
-        border-radius: 5px;
+        background: rgba(16, 185, 129, 0.1);
+        color: #34d399;
+        padding: 20px;
+        border-radius: 12px;
         text-align: center;
-        border: 1px solid #c3e6cb;
-        font-size: 1.2em;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        font-size: 1.25em;
         font-weight: bold;
-        margin-bottom: 20px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
 
     .ingredientes-meta {
-        margin-top: 12px;
-        background: #f8f9fa;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 12px;
+        margin-top: 20px;
+        background: rgba(30, 41, 59, 0.5);
+        border: 1px solid #334155;
+        border-radius: 12px;
+        padding: 20px;
     }
 
     .ingredientes-meta h4 {
-        margin: 0 0 8px 0;
-        color: #2c3e50;
+        margin: 0 0 12px 0;
+        color: #f1f5f9;
+        font-size: 1.2em;
     }
 
     .ingredientes-meta ul {
         margin: 0;
-        padding-left: 18px;
-        color: #222;
+        padding-left: 20px;
+        color: #cbd5e1;
     }
 
     .checklist-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 8px;
-        margin-top: 10px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 12px;
+        margin-top: 15px;
     }
 
     .check-item {
         display: flex;
         align-items: center;
-        gap: 8px;
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 6px;
-        padding: 8px 10px;
-        color: #111;
+        gap: 10px;
+        background: #0f172a;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        padding: 10px 14px;
+        color: #e2e8f0;
+        transition: all 0.2s;
+    }
+
+    .check-item:hover {
+        border-color: var(--pri-light);
+        background: #1e293b;
     }
 
     .check-item input {
-        width: 16px;
-        height: 16px;
-        accent-color: #0984e3;
+        width: 18px;
+        height: 18px;
+        accent-color: var(--pri);
         cursor: pointer;
     }
 
     .check-item label {
         cursor: pointer;
         flex: 1;
+        font-weight: 500;
     }
 
     .check-cantidad {
-        color: #555;
+        color: #94a3b8;
         font-size: 0.9em;
         white-space: nowrap;
+        background: #1e293b;
+        padding: 4px 8px;
+        border-radius: 6px;
     }
 
     .checklist-actions {
-        margin-top: 12px;
+        margin-top: 20px;
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 10px;
         align-items: center;
+        background: rgba(15, 23, 42, 0.4);
+        padding: 12px;
+        border-radius: 10px;
     }
 
     .checklist-count {
-        font-weight: bold;
-        color: #2c3e50;
-        margin-right: 6px;
+        font-weight: 700;
+        color: #f1f5f9;
+        margin-right: auto; /* push buttons to the right */
     }
 
     .btn-checklist {
-        background: #f1f5f9;
-        color: #111;
-        border: 1px solid #cbd5e1;
-        padding: 8px 12px;
-        border-radius: 6px;
+        background: #1e293b;
+        color: #cbd5e1;
+        border: 1px solid #334155;
+        padding: 10px 16px;
+        border-radius: 8px;
         cursor: pointer;
         font-weight: 600;
+        transition: all 0.2s;
     }
 
     .btn-checklist:hover {
-        background: #e2e8f0;
+        background: #334155;
+        color: #fff;
     }
 
     .btn-buscar {
-        background: #0984e3;
+        background: linear-gradient(135deg, var(--pri) 0%, #2563eb 100%);
         color: #fff;
         border: none;
-        padding: 10px 16px;
-        border-radius: 6px;
+        padding: 10px 20px;
+        border-radius: 8px;
         cursor: pointer;
         font-weight: 700;
+        transition: all 0.2s;
     }
 
     .btn-buscar:hover {
-        background: #0769b5;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
     }
 
     .btn-buscar:disabled {
-        background: #93c5fd;
+        background: #334155;
+        color: #64748b;
         cursor: not-allowed;
+        box-shadow: none;
+    }
+    
+    /* Config panel */
+    .config-panel {
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid #1e293b;
+        padding: 20px 24px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        max-width: 900px;
+        margin-left: auto;
+        margin-right: auto;
     }
 
-    #loader-busqueda {
-        display: none;
+    .config-panel-title {
+        margin-top: 0;
+        font-weight: 700;
+        color: var(--pri-light);
         text-align: center;
-        margin: 18px 0;
-        color: #333;
+        margin-bottom: 20px;
+        font-size: 1.1em;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .config-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+    }
+    
+    .config-item label {
+        font-size: 0.9em;
+        margin-bottom: 8px;
+        color: #94a3b8;
+    }
+    
+    /* Customize the comparison tables */
+    .comp-header {
+        padding: 20px;
+        border-radius: 12px 12px 0 0;
+        border: 1px solid #334155;
+        border-bottom: none;
+    }
+    
+    .comp-header-m {
+        background: rgba(0, 184, 148, 0.1); 
+        border-top: 5px solid #00b894;
+    }
+    
+    .comp-header-d {
+        background: rgba(255, 118, 117, 0.1); 
+        border-top: 5px solid #ff7675;
+    }
+    
+    /* Pequeño Tooltip informativo */
+    .info-tooltip {
+        position: relative;
+        display: inline-block;
+        cursor: help;
+        margin-left: 5px;
+        color: var(--pri);
+        font-weight: bold;
+        font-size: 1.1em;
+    }
+    
+    .info-tooltip .tooltip-text {
+        visibility: hidden;
+        width: 320px;
+        background-color: #1e293b;
+        color: #f1f5f9;
+        text-align: left;
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 0.85rem;
+        line-height: 1.4;
+        font-weight: normal;
+        position: absolute;
+        z-index: 100;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -160px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        border: 1px solid #334155;
+    }
+    
+    .info-tooltip .tooltip-text::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #334155 transparent transparent transparent;
+    }
+    
+    .info-tooltip:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
     }
 </style>
 
-<div class="card planificador-container"
-    style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+<div class="planificador-container">
     <div class="chef-header">
         <h2>👨‍🍳 Planificador de Menús Inteligente</h2>
-        <p style="color:#555; font-size: 1.1em;">Dime qué te apetece comer esta semana y la IA creará el menú y buscará
-            los precios.</p>
+        <p>Dime qué te apetece comer esta semana y la IA creará tu menú óptimo.</p>
     </div>
 
     <!-- SECCIÓN DE PREFERENCIAS -->
-    <div
-        style="background: #fdfefe; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-bottom: 20px; max-width: 800px; margin-left: auto; margin-right: auto;">
-        <p style="margin-top:0; font-weight:bold; color: #2ecc71; text-align: center;">⚙️ Personalización del Menú</p>
-        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 100px;">
+    <div class="config-panel">
+        <p class="config-panel-title">⚙️ Personalización del Menú</p>
+        <div class="config-grid">
+            <div class="config-item">
                 <label><strong>Personas:</strong></label>
-                <input type="number" id="numPersonasInput" min="1" max="12" value="2"
-                    style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+                <input type="number" id="numPersonasInput" min="1" max="12" value="2">
             </div>
-            <div style="flex: 1; min-width: 100px;">
+            <div class="config-item">
                 <label><strong>Días:</strong></label>
-                <input type="number" id="numDiasInput" min="1" max="14" value="7"
-                    style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+                <input type="number" id="numDiasInput" min="1" max="14" value="7">
             </div>
-            <div style="flex: 1; min-width: 150px;">
+            <div class="config-item">
                 <label><strong>Dieta:</strong></label>
-                <select id="dietaSelect" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+                <select id="dietaSelect">
                     <option value="Equilibrada">🥗 Equilibrada</option>
                     <option value="Vegana">🌱 Vegana</option>
                     <option value="Vegetariana">🥚 Vegetariana</option>
                     <option value="Sin Gluten">🌾 Sin Gluten</option>
                 </select>
             </div>
-            <div style="flex: 1; min-width: 150px;">
+            <div class="config-item">
                 <label><strong>Objetivo:</strong></label>
-                <select id="objetivoSelect" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+                <select id="objetivoSelect">
                     <option value="Ahorro">💰 Máximo Ahorro</option>
                     <option value="Ganar músculo">💪 Ganar Músculo</option>
                     <option value="Perder peso">🏃 Perder Peso</option>
                 </select>
             </div>
-            <div style="flex: 2; min-width: 250px;">
+            <div class="config-item">
                 <label><strong>Ciudad:</strong></label>
-                <select id="ciudadSelect" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+                <select id="ciudadSelect">
                     <option value="Valencia" selected>🏙️ Valencia</option>
                     <option value="Madrid">🏙️ Madrid</option>
                     <option value="Barcelona">🏙️ Barcelona</option>
@@ -388,15 +590,13 @@
                     <option value="Bilbao">🏙️ Bilbao</option>
                 </select>
             </div>
-            <div style="flex: 2; min-width: 250px;">
+            <div class="config-item" style="grid-column: span 2;">
                 <label><strong>Alergias (separadas por comas):</strong></label>
-                <input type="text" id="alergiasInput" placeholder="Ej: Nueces, Marisco, Lactosa"
-                    style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+                <input type="text" id="alergiasInput" placeholder="Ej: Nueces, Marisco, Lactosa">
             </div>
-            <div style="flex: 2; min-width: 250px;">
+            <div class="config-item" style="grid-column: span 2;">
                 <label><strong>Ingredientes que ya tienes:</strong></label>
-                <input type="text" id="despensaInput" placeholder="Ej: sal, aceite, arroz"
-                    style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+                <input type="text" id="despensaInput" placeholder="Ej: sal, aceite, arroz">
             </div>
         </div>
     </div>
@@ -404,99 +604,83 @@
     <div class="chef-input-group">
         <input type="text" id="prompt-chef" class="chef-input" placeholder="Ej: Quiero cenar vegetariano 3 días..."
             onkeypress="manejarEnter(event)">
-        <button class="btn-chef" onclick="pedirMenu()">Planificar</button>
+        <button class="btn-chef" onclick="pedirMenu()">Planificar ✨</button>
     </div>
 
     <div id="loader">
         <div class="spinner"></div>
-        <h3 style="color: #2c3e50;">El Chef está pensando...</h3>
-        <p style="color: #555;">Inventando recetas y buscando precios (puede tardar unos 10-15 segundos).</p>
+        <h3 style="color: #f8fafc; margin-top: 10px;">El Chef está pensando...</h3>
+        <p style="color: #94a3b8;">Inventando recetas y buscando precios (puede tardar unos 10-15 segundos).</p>
     </div>
 
     <div id="resultados">
-
-        <div style="text-align: center; margin-bottom: 25px;">
-            <button id="btn-guardar" class="btn-guardar" onclick="guardarMenuEnHistorial()">💾 Guardar Menú y Lista en
-                Historial</button>
-            <span id="mensaje-guardado" style="color: #27ae60; font-weight: bold; font-size: 1.1em; display: none;">✅
-                ¡Guardado en tu Dashboard!</span>
+        <div style="text-align: center; margin-bottom: 35px;">
+            <button id="btn-guardar" class="btn-guardar" onclick="guardarMenuEnHistorial()">💾 Guardar Menú y Lista en Historial</button>
+            <span id="mensaje-guardado" style="color: #10b981; font-weight: 700; font-size: 1.1em; display: none; margin-left: 15px;">✅ ¡Guardado en tu Dashboard!</span>
         </div>
 
-        <h3 style="color: #2c3e50; margin-bottom: 15px;">🍽️ Tu Menú Personalizado</h3>
+        <h3 style="color: #fff; margin-bottom: 20px; font-size: 1.5em; display:flex; align-items:center; gap: 8px;">🍽️ Tu Menú Personalizado</h3>
         <div id="menu-container" class="menu-grid"></div>
         <div id="ingredientes-meta" class="ingredientes-meta" style="display:none;"></div>
 
-        <h3 style="color: #2c3e50; margin-bottom: 15px; margin-top: 30px;">🛒 Tu Lista de la Compra</h3>
+        <h3 style="color: #fff; margin-bottom: 20px; margin-top: 40px; font-size: 1.5em; display:flex; align-items:center; gap: 8px;">🛒 Tu Lista de la Compra</h3>
 
         <div id="checklist-wrapper" class="ingredientes-meta" style="display:none;">
             <h4>Selecciona los ingredientes que quieres comprar</h4>
             <div id="checklist-grid" class="checklist-grid"></div>
             <div class="checklist-actions">
                 <span class="checklist-count">Seleccionados: <span id="checklist-count">0</span></span>
-                <button type="button" class="btn-checklist" onclick="seleccionarTodoChecklist()">Seleccionar
-                    todo</button>
+                <button type="button" class="btn-checklist" onclick="seleccionarTodoChecklist()">Seleccionar todo</button>
                 <button type="button" class="btn-checklist" onclick="limpiarChecklist()">Quitar todo</button>
-                <button type="button" id="btn-buscar-checklist" class="btn-buscar" onclick="buscarConChecklist()"
-                    disabled>Buscar precios con selección</button>
+                <button type="button" id="btn-buscar-checklist" class="btn-buscar" onclick="buscarConChecklist()" disabled>Buscar precios selecionados</button>
             </div>
-            <div id="checklist-excluidos" style="margin-top:10px; color:#2d6a4f;"></div>
+            <div id="checklist-excluidos" style="margin-top:15px; color:#34d399; font-weight: 500;"></div>
         </div>
 
         <div id="loader-busqueda">
             <div class="spinner"></div>
-            <p style="margin:0;">Buscando precios para tu selección...</p>
+            <p style="margin:10px 0 0; font-size: 1.1em; color: #f8fafc;">Buscando precios en los supermercados...</p>
         </div>
 
-        <div id="comparativa-wrapper" style="display:none;">
+        <div id="comparativa-wrapper" style="display:none; margin-top: 30px;">
             <div id="winner-banner" class="winner-banner"></div>
 
-            <div id="comparison-grid"
-                style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; margin-top: 20px;">
+            <div id="comparison-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; margin-top: 20px;">
                 <!-- Mercadona Header -->
-                <div
-                    style="background: #f4fbf7; padding: 20px; border-radius: 12px 12px 0 0; border: 1px solid #ddd; border-bottom: none; border-top: 5px solid #009432;">
-                    <h3 style="color: #009432; margin: 0; border-bottom: 2px solid #009432; padding-bottom: 8px;">
-                        Mercadona</h3>
-                    <div id="m-price" class="price-tag" style="margin-top: 10px; font-size: 1.5em;">0.00 €</div>
+                <div class="comp-header comp-header-m">
+                    <h3 style="color: #00b894; margin: 0; padding-bottom: 8px; font-size: 1.4em;">Mercadona</h3>
+                    <div id="m-price" class="price-tag">0.00 €</div>
                 </div>
                 <!-- Dia Header -->
-                <div
-                    style="background: #fff5f6; padding: 20px; border-radius: 12px 12px 0 0; border: 1px solid #ddd; border-bottom: none; border-top: 5px solid #EA2027;">
-                    <h3 style="color: #EA2027; margin: 0; border-bottom: 2px solid #EA2027; padding-bottom: 8px;">Dia
-                    </h3>
-                    <div id="d-price" class="price-tag" style="margin-top: 10px; font-size: 1.5em;">0.00 €</div>
+                <div class="comp-header comp-header-d">
+                    <h3 style="color: #ff7675; margin: 0; padding-bottom: 8px; font-size: 1.4em;">Dia</h3>
+                    <div id="d-price" class="price-tag">0.00 €</div>
                 </div>
 
                 <!-- Filas de productos -->
-                <div id="list-container"
-                    style="grid-column: 1 / span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px;">
+                <div id="list-container" style="grid-column: 1 / span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; background: rgba(15,23,42,0.4); padding: 15px; border-left: 1px solid #334155; border-right: 1px solid #334155;">
                 </div>
 
                 <!-- Footers (No encontrados) -->
-                <div id="m-missing"
-                    style="background: #f4fbf7; padding: 15px; border-radius: 0 0 12px 12px; border: 1px solid #ddd; border-top: none; color: #c0392b; font-size: 0.9em;">
+                <div id="m-missing" style="background: rgba(0, 184, 148, 0.05); padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #334155; border-top: none; color: #fca5a5; font-size: 0.95em;">
                 </div>
-                <div id="d-missing"
-                    style="background: #fff5f6; padding: 15px; border-radius: 0 0 12px 12px; border: 1px solid #ddd; border-top: none; color: #c0392b; font-size: 0.9em;">
+                <div id="d-missing" style="background: rgba(255, 118, 117, 0.05); padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #334155; border-top: none; color: #fca5a5; font-size: 0.95em;">
                 </div>
             </div>
         </div>
 
-        </div>
-        <!-- ===== FIN MAPA ===== -->
-
     </div>
     <!-- FIN RESULTADOS -->
 
-    <!-- ===== SECCIÓN MAPA (FUERA DE RESULTADOS PARA EVITAR DESTROZOS DE INNERHTML) ===== -->
-    <div id="mapa-wrapper" style="display:none; margin-top: 35px;">
-        <h3 style="color: #2c3e50; margin-bottom: 8px;">🗺️ Supermercados cerca de ti en Valencia</h3>
-        <p style="color: #555; margin-bottom: 12px; font-size: 0.95em;">
+    <!-- ===== SECCIÓN MAPA ===== -->
+    <div id="mapa-wrapper" style="display:none; margin-top: 45px;">
+        <h3 style="color: #fff; margin-bottom: 12px; font-size: 1.5em; display:flex; align-items:center; gap: 8px;">🗺️ Supermercados cerca de ti</h3>
+        <p style="color: #94a3b8; margin-bottom: 20px; font-size: 1.05em; max-width: 800px;">
             El precio mostrado en cada pin es el coste total de tu lista de la compra en esa cadena.
             Haz clic en un supermercado para trazar la ruta desde tu ubicación.
         </p>
-        <div id="mapa-supermercados" style="height: 480px; border-radius: 10px; border: 2px solid #ddd; box-shadow: 0 2px 8px rgba(0,0,0,0.12); background: #f9f9f9;"></div>
-        <p style="font-size: 0.8em; color: #aaa; margin-top: 6px;">
+        <div id="mapa-supermercados" style="height: 520px; border-radius: 16px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.3); background: #0f172a; overflow: hidden;"></div>
+        <p style="font-size: 0.85em; color: #64748b; margin-top: 12px; text-align: center;">
             📍 Ubicaciones de tiendas orientativas. Ruta calculada con OpenStreetMap/OSRM.
         </p>
     </div>
@@ -589,13 +773,49 @@
 
     function renderizarMenu(data) {
         const menuDiv = document.getElementById('menu-container');
-        menuDiv.innerHTML = data.menu.map(dia => `
-        <div class="dia-card">
-            <div class="dia-titulo">${dia.dia}</div>
-            <div class="plato-nombre">${dia.plato}</div>
-            <div class="plato-desc">${dia.descripcion}</div>
-        </div>
-    `).join('');
+        
+        // Agrupar por día para visualización horizontal
+        const diasAgrupados = {};
+        data.menu.forEach(item => {
+            const diaNombre = item.dia.split(' - ')[0] || item.dia;
+            if (!diasAgrupados[diaNombre]) diasAgrupados[diaNombre] = [];
+            diasAgrupados[diaNombre].push(item);
+        });
+
+        menuDiv.innerHTML = Object.keys(diasAgrupados).map(dia => {
+            const platos = diasAgrupados[dia];
+            // Normalizar el nombre del día para usarlo en IDs (elimina acentos y espacios)
+            const diaId = dia.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\W/g, '');
+            
+            return `
+            <div class="dia-grupo">
+                <div class="dia-heading">
+                    <i class="fas fa-calendar-alt"></i> ${dia}
+                </div>
+                <div class="platos-fila">
+                    ${platos.map((p, idx) => {
+                        const cardId = `img-${diaId}-${idx}`;
+                        const momento = p.dia.split(' - ')[1] || '';
+                        return `
+                        <div class="dia-card">
+                            <div class="momento-tag">${momento}</div>
+                            <div class="plato-img">
+                                ${p.imagen ? `
+                                    <img src="${p.imagen}" 
+                                         alt="${p.plato}" 
+                                         onload="this.parentElement.classList.add('loaded')"
+                                         onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&h=400&fit=crop'; this.parentElement.classList.add('loaded');">
+                                ` : ''}
+                            </div>
+                            <div class="plato-nombre">${p.plato}</div>
+                            <div class="plato-desc">${p.descripcion}</div>
+                        </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+            `;
+        }).join('');
 
         const metaDiv = document.getElementById('ingredientes-meta');
         const ingredientes = Array.isArray(data.ingredientes_limpios) ? data.ingredientes_limpios : [];
@@ -778,9 +998,16 @@
             </div>`;
         }
 
-        let savingsText = `Ahorrarás <strong>${comp.ahorro_total}€</strong> comprando todo en ${comp.mejor_supermercado}.`;
-
-        // --- NUEVO: Cesta Mixta ---
+        let isMoreExpensiveTicket = false;
+        if (comp.mejor_supermercado === 'Dia' && comp.cesta_dia.total > comp.cesta_mercadona.total) isMoreExpensiveTicket = true;
+        if (comp.mejor_supermercado === 'Mercadona' && comp.cesta_mercadona.total > comp.cesta_dia.total) isMoreExpensiveTicket = true;
+        
+        let savingsText = "";
+        if (isMoreExpensiveTicket) {
+            savingsText = `Invertirás <strong>${comp.ahorro_total}€ más</strong> en caja, pero obtienes mucho más producto por kilo/litro.`;
+        } else {
+            savingsText = `Ahorrarás <strong>${comp.ahorro_total}€</strong> comprando todo en ${comp.mejor_supermercado}.`;
+        }
         if (comp.cesta_mixta && comp.cesta_mixta.total > 0) {
             savingsText += `<div style="margin-top: 10px; font-size: 1.1em; color: #8e44ad;">
             🔀 <strong>Compra Mixta Óptima:</strong> Si compras lo más barato de cada tienda, pagarás solo <strong>${comp.cesta_mixta.total}€</strong> (ahorro potencial de ${comp.cesta_mixta.ahorro_potencial}€).
@@ -806,11 +1033,21 @@
         // Poner Totales
         document.getElementById('m-price').innerHTML = `
         <div style="font-weight: bold;">${comp.cesta_mercadona.total.toFixed(2)} €</div>
-        <div style="font-size: 0.5em; color: #0984e3;">🚀 Eficiencia: ${comp.cesta_mercadona.total_normalizado.toFixed(2)}€/kg-L</div>
+        <div style="font-size: 0.5em; color: #0984e3; display: flex; align-items: center; justify-content: center; gap: 4px;">
+            <span>⚖️ Coste Proporcional: ${comp.cesta_mercadona.total_normalizado.toFixed(2)}€</span>
+            <span class="info-tooltip">ⓘ
+                <span class="tooltip-text">El <b>Coste Proporcional</b> calcula matemáticamente lo que cuestan los gramos exactos que vas a consumir en tu menú. Sirve para comparar el precio real, ignorando si el supermercado te obliga a comprar envases de 5Kg o te permite comprar a granel.</span>
+            </span>
+        </div>
     `;
         document.getElementById('d-price').innerHTML = `
         <div style="font-weight: bold;">${comp.cesta_dia.total.toFixed(2)} €</div>
-        <div style="font-size: 0.5em; color: #0984e3;">🚀 Eficiencia: ${comp.cesta_dia.total_normalizado.toFixed(2)}€/kg-L</div>
+        <div style="font-size: 0.5em; color: #0984e3; display: flex; align-items: center; justify-content: center; gap: 4px;">
+            <span>⚖️ Coste Proporcional: ${comp.cesta_dia.total_normalizado.toFixed(2)}€</span>
+            <span class="info-tooltip">ⓘ
+                <span class="tooltip-text">El <b>Coste Proporcional</b> calcula matemáticamente lo que cuestan los gramos exactos que vas a consumir en tu menú. Sirve para comparar el precio real, ignorando si el supermercado te obliga a comprar envases de 5Kg o te permite comprar a granel.</span>
+            </span>
+        </div>
     `;
 
         // Renderizar Filas Alineadas

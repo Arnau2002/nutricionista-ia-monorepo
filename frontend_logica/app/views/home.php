@@ -3,7 +3,7 @@ $title = $title ?? 'Comparador Inteligente';
 $view = 'home';
 ?>
 
-<div style="background: #27ae60; color: white; padding: 15px; text-align: center; margin-bottom: 20px; font-weight: bold; border-radius: 5px;">
+<div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 16px; text-align: center; margin-bottom: 24px; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);">
     ✅ MODO MVP: Conectado al Cerebro IA (Puerto 8001)
 </div>
 
@@ -12,57 +12,56 @@ $view = 'home';
 <?php if (!isset($_SESSION['username'])): ?>
   <div style="text-align:center; padding: 40px;">
       <p>Necesitas identificarte para usar la IA.</p>
-      <a class="btn LogInBtn" href="/?r=login">Iniciar sesión</a>
+      <div class="LogInP">
+        <a class="btn LogInBtn" href="/?r=login">Iniciar sesión</a>
+      </div>
   </div>
 
 <?php else: ?>
-  <p>Pega tu lista de la compra y la IA encontrará los mejores precios en Mercadona y Dia.</p>
+  <p style="text-align: center; color: var(--muted); font-size: 1.1em; margin-bottom: 30px;">Pega tu lista de la compra y la IA encontrará los mejores precios en Mercadona y Dia.</p>
 
-  <div class="card" style="padding: 20px; background: white; border: 1px solid #ddd; margin-bottom: 20px;">
+  <div class="card">
       <div class="row">
         <div class="full-width">
-          <label for="listaInput"><strong>Tu Lista de la Compra:</strong></label>
-          <textarea id="listaInput" rows="6" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px;" 
+          <label for="listaInput">Tu Lista de la Compra:</label>
+          <textarea id="listaInput" rows="6" 
             placeholder="Ejemplo:&#10;1 litro de leche entera&#10;Pechuga de pollo&#10;Arroz redondo&#10;Aceite de oliva"></textarea>
         </div>
-        <div id="simple-error-msg" style="display:none; color: white; background: #e74c3c; padding: 10px; margin-top: 20px; border-radius: 4px;"></div>
-        <div class="full-width" style="margin-top:15px;">
-          <button class="btn" id="btnComparar" onclick="compararPrecios()" style="width:100%; font-size:1.1em;">
+        <div id="simple-error-msg" class="err" style="display:none; padding: 16px; border-radius: 12px; margin-top: 10px; font-weight: 500;"></div>
+        <div class="full-width" style="margin-top:5px;">
+          <button class="btn" id="btnComparar" onclick="compararPrecios()" style="font-size:1.1em; padding: 16px;">
             🔍 Comparar Precios en Mercadona y Dia
           </button>
         </div>
       </div>
   </div>
 
-  <div id="loading" style="display:none; text-align:center; margin-top:20px;">
-      <p>🧠 La IA está pensando... comparando precios...</p>
+  <div id="loading" style="display:none; text-align:center; margin-top:30px; padding: 30px; background: rgba(255,255,255,0.5); border-radius: 16px;">
+      <p style="font-size: 1.2em; font-weight: 600; color: var(--pri);">🧠 La IA está pensando... comparando precios...</p>
   </div>
 
-  <!-- Error div removed (moved inside card) -->
-
-  <div id="results-section" style="display:none; margin-top: 30px; max-width: 1000px; margin-left: auto; margin-right: auto;">
+  <div id="results-section" style="display:none; margin-top: 40px;">
       
-      <div id="winner-banner" class="winner-box" style="background: #d4edda; color: #155724; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 25px; border: 1px solid #c3e6cb; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-          <h2 id="winner-title" style="margin:0; font-size: 1.8em;">🏆 Mejor opción: ...</h2>
-          <p id="winner-savings" style="margin:5px 0 15px 0; font-size: 1.2em;">Ahorro estimado: 0.00€</p>
+      <div id="winner-banner" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px; border-radius: 16px; text-align: center; margin-bottom: 35px; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);">
+          <h2 id="winner-title" style="margin:0 0 10px 0; font-size: 2em; color: white;">🏆 Mejor opción: ...</h2>
+          <p id="winner-savings" style="margin:0 0 20px 0; font-size: 1.25em; opacity: 0.95;">Ahorro estimado: 0.00€</p>
           
-          <button id="btnSave" onclick="guardarCesta()" style="background: white; color: #333; border: 1px solid #ccc; padding: 10px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;">
+          <button id="btnSave" onclick="guardarCesta()" style="background: white; color: #059669; border: none; padding: 12px 24px; border-radius: 30px; cursor: pointer; font-weight: 800; font-size: 1.1em; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: all 0.2s;">
             💾 Guardar en mi Historial
           </button>
-          <div id="save-msg" style="margin-top: 10px; font-size: 0.9em; display: none;"></div>
+          <div id="save-msg" style="margin-top: 15px; font-weight: 600; display: none;"></div>
       </div>
 
-      <!-- NUEVA ESTRUCTURA DE GRILLA PARA ALINEACIÓN PERFECTA -->
-      <div id="comparison-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px;">
-          <!-- Columna Mercadona (Header) -->
-          <div class="mercadona-header" style="background: #f4fbf7; padding: 20px; border-radius: 12px 12px 0 0; border: 1px solid #ddd; border-bottom: none; border-top: 5px solid #007a3e;">
-              <h3 style="color: #007a3e; margin: 0; border-bottom: 2px solid #007a3e; padding-bottom: 8px;">Mercadona</h3>
-              <div id="total-mercadona" style="margin-top: 10px;"></div>
+      <div id="comparison-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px;">
+          <!-- Columna Mercadona -->
+          <div class="mercadona-header" style="background: #f0fdf4; padding: 24px; border-radius: 16px 16px 0 0; border: 1px solid var(--border); border-bottom: none; border-top: 4px solid #16a34a; text-align: center;">
+              <h3 style="color: #16a34a; margin: 0 0 12px 0; font-size: 1.5em;">Mercadona</h3>
+              <div id="total-mercadona"></div>
           </div>
-          <!-- Columna Dia (Header) -->
-          <div class="dia-header" style="background: #fff5f6; padding: 20px; border-radius: 12px 12px 0 0; border: 1px solid #ddd; border-bottom: none; border-top: 5px solid #d50032;">
-              <h3 style="color: #d50032; margin: 0; border-bottom: 2px solid #d50032; padding-bottom: 8px;">Dia</h3>
-              <div id="total-dia" style="margin-top: 10px;"></div>
+          <!-- Columna Dia -->
+          <div class="dia-header" style="background: #fef2f2; padding: 24px; border-radius: 16px 16px 0 0; border: 1px solid var(--border); border-bottom: none; border-top: 4px solid #dc2626; text-align: center;">
+              <h3 style="color: #dc2626; margin: 0 0 12px 0; font-size: 1.5em;">Dia</h3>
+              <div id="total-dia"></div>
           </div>
 
           <!-- Filas de productos inyectadas por JS -->

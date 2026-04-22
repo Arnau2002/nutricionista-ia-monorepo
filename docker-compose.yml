@@ -87,7 +87,11 @@ services:
     ports:
       - "3000:80"
     volumes:                            
-      - ./frontend_logica:/var/www/html   
+      - ./frontend_logica:/var/www/html
+    env_file:
+      - .env
+    environment:
+      - POLLINATIONS_API_KEY=${POLLINATIONS_API_KEY}
     depends_on:
       - backend-logica
 

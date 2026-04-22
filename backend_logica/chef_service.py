@@ -1,11 +1,13 @@
 import os
 import json
 import google.generativeai as genai
+import urllib.parse
 from dotenv import load_dotenv
 
 # Carga de configuración
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
+pollinations_key = os.getenv("POLLINATIONS_API_KEY")
 
 if api_key:
     genai.configure(api_key=api_key)
@@ -107,15 +109,18 @@ El JSON debe tener esta estructura exacta:
     "dia_1": {{
       "desayuno": {{
         "plato": "nombre del plato",
-        "ingredientes": ["ingrediente1", "ingrediente2"]
+        "ingredientes": ["ingrediente1", "ingrediente2"],
+        "prompt_visual": "Detailed English description. Mention specific ingredients and textures."
       }},
       "comida": {{
         "plato": "nombre del plato",
-        "ingredientes": ["ingrediente1", "ingrediente2"]
+        "ingredientes": ["ingrediente1", "ingrediente2"],
+        "prompt_visual": "..."
       }},
       "cena": {{
         "plato": "nombre del plato",
-        "ingredientes": ["ingrediente1", "ingrediente2"]
+        "ingredientes": ["ingrediente1", "ingrediente2"],
+        "prompt_visual": "..."
       }}
     }},
     "dia_2": {{ ... }}
@@ -123,14 +128,16 @@ El JSON debe tener esta estructura exacta:
 }}
 
 REGLAS PARA LOS INGREDIENTES:
-1. Usa nombres genéricos de producto en SINGULAR (ej: "leche entera", "pechuga de pollo", "arroz", "tomate").
+1. Usa nombres genéricos de producto en SINGULAR.
 2. NO incluyas marcas comerciales.
-3. Los ingredientes deben ser productos que se encuentren en un supermercado español.
-4. Varía los platos a lo largo de la semana, pero REUTILIZA al máximo los ingredientes base (ej. usa el mismo tipo de tomate, cebolla y proteína para varios platos si es posible).
-5. Minimiza el número total de ingredientes únicos en la lista de la compra semanal para maximizar el ahorro y evitar desperdicio.
-6. EVITA sufijos descriptivos innecesarios (ej. no pongas "tomate maduro" o "tomate rojo" si con "tomate" basta).
-7. NO inventes nombres ni añadidas letras extra (ej. nunca pongas "garbanzoss" o "lentejass").
-8. Responde EXCLUSIVAMENTE con el JSON:"""
+3. Varía los platos a lo largo de la semana.
+4. Responde EXCLUSIVAMENTE con el JSON.
+5. Para 'prompt_visual', genera una DESCRIPCIÓN EXTREMADAMENTE DETALLADA en INGLÉS. 
+   REGLAS CRÍTICAS:
+   - Composición: Enfócate en UN SOLO PLATO centrado (close-up). Evita fotos de grupo, buffet o muchas personas.
+   - Fidelidad: Describe visualmente la textura y color de los ingredientes CLAVE de la receta (ej. "golden chicken cubes with fresh green zucchini slices").
+   - Calidad: Incluye términos como "Professional food photography, macro lens, 8k, bokeh background, sharp focus, minimalist background".
+"""
 
     for nombre_modelo in modelos_a_probar:
         try:
@@ -176,10 +183,23 @@ REGLAS PARA LOS INGREDIENTES:
                                 ing_con_cantidad.append(f"{ing} ({cant}{uni})")
                                 
                             # Agregamos al formato de UI esperado
+                            # Usamos Pollinations AI (Flux) para generar imágenes reales bajo demanda
+                            # Codificamos el prompt visual para que sea una URL válida
+                            visual_prompt = detalle.get("prompt_visual", f"Professional food photography of {plato}")
+                            prompt_encoded = urllib.parse.quote(visual_prompt)
+                            
+                            # Añadimos un seed aleatorio
+                            import random
+                            seed = random.randint(1, 100000)
+                            
+                            # URL a través de nuestro proxy local para usar la API Key
+                            url_ia = f"/api_proxy_ia.php?prompt={prompt_encoded}&seed={seed}"
+                            
                             menu_formateado.append({
                                 "dia": f"{dia.capitalize()} - {momento.capitalize()}",
                                 "plato": plato,
-                                "descripcion": f"Ingredientes: {', '.join(ing_con_cantidad)}"
+                                "descripcion": f"Ingredientes: {', '.join(ing_con_cantidad)}",
+                                "imagen": url_ia
                             })
             
             # Consolidación de ingredientes: preservamos frecuencia para estimar compra semanal

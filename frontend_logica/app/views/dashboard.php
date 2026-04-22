@@ -26,63 +26,61 @@ try {
 ?>
 
 <style>
-    .dashboard-container { color: #333; font-family: sans-serif; }
+    .dashboard-container { color: var(--text); }
     
     /* TABLA DE HISTORIAL */
-    .history-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    .history-table th { background-color: #2c3e50; color: white; padding: 12px; text-align: left; }
-    .history-table td { padding: 12px; border-bottom: 1px solid #ddd; color: #000; }
-    .history-table tr:hover { background-color: #f1f2f6; }
+    .history-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+    .history-table th { background-color: #f1f5f9; color: var(--muted); padding: 16px; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px; }
+    .history-table td { padding: 16px; border-bottom: 1px solid var(--border); background: #fff; vertical-align: middle; }
+    .history-table tr:last-child td { border-bottom: none; }
+    .history-table tr:hover td { background-color: #f8fafc; }
 
     .btn-ver {
-        background-color: #0984e3; color: white; border: none; padding: 6px 12px; 
-        border-radius: 4px; cursor: pointer; font-weight: bold;
+        background-color: #e0f2fe; color: #0284c7; border: none; padding: 8px 14px; 
+        border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s;
     }
-    .btn-ver:hover { background-color: #0769b5; }
+    .btn-ver:hover { background-color: #bae6fd; color: #0369a1; }
+    
+    .btn-borrar {
+        background-color: #fee2e2; color: #b91c1c; border: none; padding: 8px 14px; 
+        border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s;
+    }
+    .btn-borrar:hover { background-color: #fecaca; color: #991b1b; }
 
     /* ZONA DE DETALLES */
     #detalle-cesta {
-        margin-top: 30px; display: none; 
-        border-top: 3px solid #0984e3; padding-top: 20px;
+        margin-top: 40px; display: none; 
         animation: fadeIn 0.5s;
     }
 
     /*  ESTILOS DEL MENÚ GUARDADO */
-    .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 25px; margin-top: 15px; }
-    .dia-card { background: #fdfbf7; border-left: 4px solid #f39c12; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .dia-titulo { color: #d68910; font-weight: bold; margin-bottom: 5px; font-size: 1.1em; }
-    .plato-nombre { font-weight: bold; color: #000; margin-bottom: 8px; font-size: 1.15em; }
-    .plato-desc { color: #333; font-size: 0.95em; line-height: 1.4; }
+    .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px; margin-top: 15px; }
+    .dia-card { background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--pri); padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); transition: transform 0.2s; }
+    .dia-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.05); }
+    .dia-titulo { color: var(--pri); font-weight: 700; margin-bottom: 8px; font-size: 1.1em; text-transform: uppercase; letter-spacing: 0.5px; }
+    .plato-nombre { font-weight: 800; color: var(--text); margin-bottom: 8px; font-size: 1.2em; line-height: 1.3; }
+    .plato-desc { color: var(--muted); font-size: 0.95em; line-height: 1.5; }
 
     /* TARJETAS DE SUPERMERCADO */
-    .comparison-row { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
-    .super-card { flex: 1; min-width: 300px; padding: 20px; border-radius: 8px; border: 1px solid #ccc; color: #000; background: white;}
+    .precio-tag { font-size: 1.8em; margin: 15px 0; font-weight: 800; color: var(--text); }
+    .prod-item { border-bottom: 1px solid var(--border); padding: 12px 0; }
+    .prod-name { font-weight: 700; color: var(--text); margin-bottom: 4px; display: block; line-height: 1.3; }
+    .prod-meta { color: var(--muted); font-size: 0.9em; font-weight: 500; display: block; }
     
-    .card-mercadona { background: #f4fbf7; border-top: 5px solid #009432; }
-    .card-mercadona h3 { color: #009432; border-bottom: 2px solid #009432; padding-bottom: 5px; margin-top: 0;}
-    
-    .card-dia { background: #fff5f6; border-top: 5px solid #EA2027; }
-    .card-dia h3 { color: #EA2027; border-bottom: 2px solid #EA2027; padding-bottom: 5px; margin-top: 0;}
-
-    .price-tag { font-size: 1.6em; margin: 15px 0; font-weight: bold; color: #111; }
-    .prod-item { border-bottom: 1px solid #ddd; padding: 10px 0; font-size: 0.95em; color: #000; }
-    .prod-name { font-weight: 700; color: #000; margin-bottom: 3px; display: block; }
-    .prod-meta { color: #444; font-size: 0.9em; font-weight: 500; }
-    
-    .missing-box { margin-top: 15px; padding: 15px; background: #fdedec; border: 1px solid #e6b0aa; border-radius: 6px; color: #c0392b; font-size: 0.9em; }
-    .winner-banner { background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; text-align: center; margin-bottom: 20px; border: 1px solid #c3e6cb; font-size: 1.2em; font-weight: bold; }
+    .winner-banner { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 24px; border-radius: 16px; text-align: center; margin-bottom: 30px; border: none; font-size: 1.2em; font-weight: 600; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3); }
 
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 
 <div class="dashboard-container">
-    <h2 style="color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px;">📊 Mi Historial de Compras</h2>
+    <h2 style="text-align: left; margin-bottom: 24px;">📊 Mi Historial de Compras</h2>
     
-    <div class="card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    <div class="card">
         
         <?php if (empty($cestas)): ?>
-            <p style="text-align: center; color: #555; padding: 20px;">
-                Aún no tienes historial. <a href="/?r=planificador">¡Planifica tu primer menú!</a>
+            <p style="text-align: center; color: var(--muted); padding: 40px; font-size: 1.1em; font-weight: 500;">
+                Aún no tienes historial. <br><br>
+                <a class="btn" href="/?r=planificador" style="display:inline-block; max-width: 250px;">¡Planifica tu primer menú!</a>
             </p>
         <?php else: ?>
 
@@ -99,18 +97,18 @@ try {
                     <?php foreach ($cestas as $cesta): ?>
                         <?php 
                             $winner = htmlspecialchars($cesta['winner_store']);
-                            $colorGanador = ($winner == 'Mercadona') ? '#009432' : '#EA2027'; 
+                            $colorGanador = ($winner == 'Mercadona') ? '#16a34a' : '#dc2626'; 
                             $jsonSafe = htmlspecialchars($cesta['json_data'], ENT_QUOTES, 'UTF-8');
                         ?>
                         <tr>
-                            <td><?php echo date('d/m/Y H:i', strtotime($cesta['created_at'])); ?></td>
-                            <td style="font-weight: bold; color: <?php echo $colorGanador; ?>;"><?php echo $winner; ?></td>
-                            <td style="font-weight: bold;"><?php echo number_format($cesta['total_price'], 2); ?> €</td>
-                            <td style="display: flex; gap: 8px;">
+                            <td style="font-weight: 500; color: var(--text);"><?php echo date('d/m/Y H:i', strtotime($cesta['created_at'])); ?></td>
+                            <td style="font-weight: 800; color: <?php echo $colorGanador; ?>;"><?php echo $winner; ?></td>
+                            <td style="font-weight: 800; font-size: 1.1em;"><?php echo number_format($cesta['total_price'], 2); ?> €</td>
+                            <td style="display: flex; gap: 10px;">
                                 <button class="btn-ver" data-json='<?php echo $jsonSafe; ?>' onclick="cargarDetalle(this)">
                                     👁️ Ver
                                 </button>
-                                <button class="btn-borrar" onclick="borrarCesta(<?php echo $cesta['id']; ?>, this)" style="background: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                                <button class="btn-borrar" onclick="borrarCesta(<?php echo $cesta['id']; ?>, this)">
                                     🗑️ Borrar
                                 </button>
                             </td>
@@ -123,28 +121,28 @@ try {
     </div>
 
     <div id="detalle-cesta">
-        <h3 style="color: #333; margin-bottom: 20px;">📝 Detalles de la Búsqueda Guardada</h3>
+        <h3 style="margin-bottom: 24px;">📝 Detalles de la Búsqueda Guardada</h3>
         
         <div id="dashboard-menu-container" style="display: none;">
-            <h4 style="color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px;">🍽️ Menú Planificado</h4>
+            <h4 style="margin-bottom: 16px; border-bottom: 2px solid var(--border); padding-bottom: 8px;">🍽️ Menú Planificado</h4>
             <div id="dashboard-menu-grid" class="menu-grid"></div>
         </div>
 
-        <h4 style="color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 20px;">🛒 Lista de la Compra</h4>
+        <h4 style="margin-top: 40px; margin-bottom: 16px; border-bottom: 2px solid var(--border); padding-bottom: 8px;">🛒 Lista de la Compra</h4>
         <div id="detail-banner" class="winner-banner">
             <div id="winner-msg"></div>
         </div>
 
-        <div id="comparison-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px;">
+        <div id="comparison-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px;">
             <!-- Mercadona Header -->
-            <div style="background: #f4fbf7; padding: 20px; border-radius: 12px 12px 0 0; border: 1px solid #ddd; border-bottom: none; border-top: 5px solid #009432;">
-                <h3 style="color: #009432; margin: 0; border-bottom: 2px solid #009432; padding-bottom: 8px;">Mercadona</h3>
-                <div id="m-price" class="price-tag" style="margin-top: 10px; font-size: 1.5em;">0.00 €</div>
+            <div style="background: #f0fdf4; padding: 24px; border-radius: 16px 16px 0 0; border: 1px solid var(--border); border-bottom: none; border-top: 4px solid #16a34a; text-align: center;">
+                <h3 style="color: #16a34a; margin: 0 0 12px 0;">Mercadona</h3>
+                <div id="m-price" class="precio-tag">0.00 €</div>
             </div>
             <!-- Dia Header -->
-            <div style="background: #fff5f6; padding: 20px; border-radius: 12px 12px 0 0; border: 1px solid #ddd; border-bottom: none; border-top: 5px solid #EA2027;">
-                <h3 style="color: #EA2027; margin: 0; border-bottom: 2px solid #EA2027; padding-bottom: 8px;">Dia</h3>
-                <div id="d-price" class="price-tag" style="margin-top: 10px; font-size: 1.5em;">0.00 €</div>
+            <div style="background: #fef2f2; padding: 24px; border-radius: 16px 16px 0 0; border: 1px solid var(--border); border-bottom: none; border-top: 4px solid #dc2626; text-align: center;">
+                <h3 style="color: #dc2626; margin: 0 0 12px 0;">Dia</h3>
+                <div id="d-price" class="precio-tag">0.00 €</div>
             </div>
 
             <!-- Filas de productos inyectadas por JS -->

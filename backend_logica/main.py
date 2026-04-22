@@ -669,8 +669,14 @@ async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = 
             comparable = p_ref * (target_base * 10.0)
             tam_producto = (precio / p_ref) / 10.0
         else:
-            comparable = precio * max(1, units_reales)
-            tam_producto = 0
+            # Fallback inteligente: si p_ref existe y precio/p_ref > 1.1, asumimos que p_ref era precio/kg
+            # (Ej: Mercadona patatas 5.60€, p_ref 1.12€/ud => es una bolsa de 5kg, por tanto 1.12 es €/kg)
+            if p_ref > 0.05 and (precio / p_ref) > 1.1:
+                comparable = p_ref * target_base
+                tam_producto = precio / p_ref
+            else:
+                comparable = precio * max(1, units_reales)
+                tam_producto = 0
 
         # Penalización por desajuste de formato (especial cuidado en líquidos)
         if tam_producto > 0:
