@@ -3,11 +3,14 @@ $title = $title ?? 'Comparador Inteligente';
 $view = 'home';
 ?>
 
-<div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 16px; text-align: center; margin-bottom: 24px; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);">
-    ✅ MODO MVP: Conectado al Cerebro IA (Puerto 8001)
+<div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+    <div class="badge-status">
+        <span class="dot"></span>
+        Cerebro IA Conectado
+    </div>
 </div>
 
-<h2>Comparador de Cestas Inteligente</h2>
+<h2 style="font-size: 2.2rem; margin-bottom: 8px;">Comparador de Cestas Inteligente</h2>
 
 <?php if (!isset($_SESSION['username'])): ?>
   <div style="text-align:center; padding: 40px;">
@@ -20,23 +23,45 @@ $view = 'home';
 <?php else: ?>
   <p style="text-align: center; color: var(--muted); font-size: 1.1em; margin-bottom: 30px;">Pega tu lista de la compra y la IA encontrará los mejores precios en Mercadona y Dia.</p>
 
-  <div class="card">
+  <div class="card glass">
       <div class="row">
         <div class="full-width">
-          <label for="listaInput">Tu Lista de la Compra:</label>
-          <textarea id="listaInput" rows="6" 
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
+            <label for="listaInput" style="margin-bottom: 0;">Tu Lista de la Compra:</label>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label style="margin-bottom: 0; font-size: 0.8em;">Ciudad:</label>
+                <select id="ciudadSelect" class="glass-input" style="padding: 6px 12px; width: auto; font-size: 0.85em; height: auto;" onchange="saveCity()">
+                    <option value="Valencia">Valencia</option>
+                    <option value="Madrid">Madrid</option>
+                    <option value="Barcelona">Barcelona</option>
+                    <option value="Sevilla">Sevilla</option>
+                    <option value="Malaga">Málaga</option>
+                    <option value="Zaragoza">Zaragoza</option>
+                    <option value="Bilbao">Bilbao</option>
+                </select>
+            </div>
+          </div>
+          <textarea id="listaInput" rows="6" class="glass-input"
             placeholder="Ejemplo:&#10;1 litro de leche entera&#10;Pechuga de pollo&#10;Arroz redondo&#10;Aceite de oliva"></textarea>
+          
+          <div class="quick-tags">
+              <span class="quick-tag" onclick="addIngredient('Leche entera')">🥛 Leche</span>
+              <span class="quick-tag" onclick="addIngredient('Docena de huevos')">🥚 Huevos</span>
+              <span class="quick-tag" onclick="addIngredient('Pan de molde')">🍞 Pan</span>
+              <span class="quick-tag" onclick="addIngredient('Pechuga de pollo')">🍗 Pollo</span>
+              <span class="quick-tag" onclick="addIngredient('Aceite de oliva')">🫒 Aceite</span>
+          </div>
         </div>
         <div id="simple-error-msg" class="err" style="display:none; padding: 16px; border-radius: 12px; margin-top: 10px; font-weight: 500;"></div>
-        <div class="full-width" style="margin-top:5px;">
-          <button class="btn" id="btnComparar" onclick="compararPrecios()" style="font-size:1.1em; padding: 16px;">
-            🔍 Comparar Precios en Mercadona y Dia
+        <div class="full-width" style="margin-top:20px;">
+          <button class="btn" id="btnComparar" onclick="compararPrecios()" style="font-size:1.1em; padding: 18px; border-radius: 16px;">
+            🔍 Comparar Precios Reales
           </button>
         </div>
       </div>
   </div>
 
-  <div id="loading" style="display:none; text-align:center; margin-top:30px; padding: 30px; background: rgba(255,255,255,0.5); border-radius: 16px;">
+  <div id="loading" style="display:none; text-align:center; margin-top:30px; padding: 30px; border-radius: 16px;" class="glass">
       <p style="font-size: 1.2em; font-weight: 600; color: var(--pri);">🧠 La IA está pensando... comparando precios...</p>
   </div>
 
@@ -82,6 +107,13 @@ $view = 'home';
     window.addEventListener('load', () => {
         const savedData = localStorage.getItem('ultimoComparador');
         const savedText = localStorage.getItem('ultimoTextoLista');
+        const savedCity = localStorage.getItem('ultimaCiudad');
+
+        if (savedCity) {
+            const cityEl = document.getElementById('ciudadSelect');
+            if (cityEl) cityEl.value = savedCity;
+        }
+
         if (savedText) {
             const el = document.getElementById('listaInput');
             if (el) el.value = savedText;
@@ -93,10 +125,27 @@ $view = 'home';
         }
     });
 
+    function saveCity() {
+        const city = document.getElementById('ciudadSelect').value;
+        localStorage.setItem('ultimaCiudad', city);
+    }
+
+    function addIngredient(name) {
+        const el = document.getElementById('listaInput');
+        const current = el.value.trim();
+        el.value = current ? current + '\n' + name : name;
+        el.focus();
+        localStorage.setItem('ultimoTextoLista', el.value);
+    }
+
     async function compararPrecios() {
         const inputEl = document.getElementById('listaInput');
+        const cityEl = document.getElementById('ciudadSelect');
         const input = inputEl ? inputEl.value.trim() : "";
+        const city = cityEl ? cityEl.value : "Valencia";
+
         localStorage.setItem('ultimoTextoLista', input);
+        localStorage.setItem('ultimaCiudad', city);
         
         const btn = document.getElementById('btnComparar');
         const loading = document.getElementById('loading');
@@ -122,7 +171,8 @@ $view = 'home';
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    ingredientes: ingredientes
+                    ingredientes: ingredientes,
+                    ciudad: city
                 }) 
             });
 
@@ -183,11 +233,17 @@ $view = 'home';
         `;
 
         if (data.mejor_supermercado === 'Mercadona') {
-            winnerBox.style.background = "#d4edda"; winnerBox.style.color = "#155724";
+            winnerBox.style.background = "rgba(16, 185, 129, 0.15)"; 
+            winnerBox.style.color = "var(--text)";
+            winnerBox.style.border = "1px solid var(--success)";
         } else if (data.mejor_supermercado === 'Dia') {
-            winnerBox.style.background = "#fadbd8"; winnerBox.style.color = "#721c24";
+            winnerBox.style.background = "rgba(239, 68, 68, 0.15)"; 
+            winnerBox.style.color = "var(--text)";
+            winnerBox.style.border = "1px solid var(--err)";
         } else {
-            winnerBox.style.background = "#fff3cd"; winnerBox.style.color = "#856404";
+            winnerBox.style.background = "var(--card)"; 
+            winnerBox.style.color = "var(--text)";
+            winnerBox.style.border = "1px solid var(--border)";
         }
 
         // Headers Totales
@@ -208,18 +264,18 @@ $view = 'home';
             data.filas.forEach(fila => {
                 // Celda Mercadona
                 const divM = document.createElement('div');
-                divM.style.background = "#f4fbf7";
                 divM.style.padding = "0 20px 12px 20px";
-                divM.style.borderLeft = "1px solid #ddd";
-                divM.style.borderRight = "1px solid #ddd";
+                divM.style.borderLeft = "1px solid var(--border)";
+                divM.style.borderRight = "1px solid var(--border)";
+                divM.style.background = "rgba(0,0,0,0.01)";
                 divM.innerHTML = crearHtmlCelda(fila.mercadona, 'Mercadona');
                 
                 // Celda Dia
                 const divD = document.createElement('div');
-                divD.style.background = "#fff5f6";
                 divD.style.padding = "0 20px 12px 20px";
-                divD.style.borderLeft = "1px solid #ddd";
-                divD.style.borderRight = "1px solid #ddd";
+                divD.style.borderLeft = "1px solid var(--border)";
+                divD.style.borderRight = "1px solid var(--border)";
+                divD.style.background = "rgba(0,0,0,0.02)";
                 divD.innerHTML = crearHtmlCelda(fila.dia, 'Dia');
 
                 container.appendChild(divM);
@@ -273,8 +329,8 @@ $view = 'home';
 
     function crearHtmlCelda(p, tienda) {
         if (!p) {
-            return `<div style="display: flex; align-items: center; gap: 12px; padding: 15px 0; color: #999; font-style: italic; border-top: 1px solid #eee;">
-                <div style="width: 50px; height: 50px; background: rgba(0,0,0,0.03); border: 1px dashed #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center;">❓</div>
+            return `<div style="display: flex; align-items: center; gap: 12px; padding: 15px 0; color: var(--muted); font-style: italic; border-top: 1px solid var(--border);">
+                <div style="width: 50px; height: 50px; background: rgba(0,0,0,0.03); border: 1px dashed var(--border); border-radius: 4px; display: flex; align-items: center; justify-content: center;">❓</div>
                 <div style="font-size: 0.9em;">No disponible en ${tienda}</div>
             </div>`;
         }
@@ -282,13 +338,13 @@ $view = 'home';
         const esCaro = p.es_formato_grande;
         const imgUrl = (p.imagen && p.imagen !== '') ? p.imagen : 'https://cdn-icons-png.flaticon.com/512/1147/1147931.png';
 
-        return `<div style="display: flex; align-items: center; gap: 12px; padding: 15px 0; border-top: 1px solid #eee;">
-            <img src="${imgUrl}" style="width: 50px; height: 50px; object-fit: contain; border-radius: 4px; border: 1px solid #ddd; background: white;">
+        return `<div style="display: flex; align-items: center; gap: 12px; padding: 15px 0; border-top: 1px solid var(--border);">
+            <img src="${imgUrl}" style="width: 50px; height: 50px; object-fit: contain; border-radius: 4px; border: 1px solid var(--border); background: var(--input-bg);">
             <div style="flex: 1;">
-                <div style="font-weight: bold; font-size: 0.95em; color: #000; line-height: 1.2;">${p.nombre}</div>
-                <div style="color: #555; font-size: 0.85em; display: flex; justify-content: space-between; margin-top: 4px;">
-                    <span style="${esCaro ? 'color: #d35400; font-weight: bold;' : ''}">${p.precio.toFixed(2)}€</span>
-                    <span style="color: #0984e3; font-weight: bold;">${p.precio_ref > 0 ? p.precio_ref.toFixed(2) + '€/' + p.unidad : ''}</span>
+                <div style="font-weight: bold; font-size: 0.95em; color: var(--text); line-height: 1.2;">${p.nombre}</div>
+                <div style="color: var(--muted); font-size: 0.85em; display: flex; justify-content: space-between; margin-top: 4px;">
+                    <span style="${esCaro ? 'color: var(--err); font-weight: bold;' : ''}">${p.precio.toFixed(2)}€</span>
+                    <span style="color: var(--pri); font-weight: bold;">${p.precio_ref > 0 ? p.precio_ref.toFixed(2) + '€/' + p.unidad : ''}</span>
                 </div>
             </div>
         </div>`;

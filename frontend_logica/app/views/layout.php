@@ -1,13 +1,16 @@
+<!DOCTYPE html>
 <html lang="es">
 <head>
+  <script>
+    // Pre-vuelo para evitar flash de color incorrecto
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title><?= htmlspecialchars($title ?? $appName) ?> — <?= htmlspecialchars($appName) ?></title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css">
-  <!-- Leaflet.js para el mapa de supermercados -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css">
+  <link rel="stylesheet" href="/css/style.css?v=<?= time() ?>">
 </head>
 <body>
   <header class="site-header">
@@ -23,6 +26,10 @@
           <a href="/?r=planificador">👨‍🍳 Planificador</a> <a href="/?r=dashboard">Dashboard</a>
           <a href="/?r=logout">Logout</a>
         <?php endif; ?>
+        
+        <button class="theme-toggle" id="themeToggle" title="Cambiar modo">
+            <span id="themeIcon">🌙</span>
+        </button>
       </nav>
     </div>
   </header>
@@ -40,8 +47,28 @@
   <footer>
     <p class="muted">Nutricionista.IA • <?= date('Y') ?></p>
   </footer>
-  <!-- Leaflet scripts al final del body para garantizar disponibilidad -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+  <script>
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const html = document.documentElement;
+
+    // Inicializar icono basándose en el atributo actual
+    function updateIcon() {
+        const currentTheme = html.getAttribute('data-theme');
+        themeIcon.innerText = currentTheme === 'light' ? '☀️' : '🌙';
+    }
+    
+    updateIcon();
+
+    themeToggle.addEventListener('click', () => {
+        const currentTheme = html.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        
+        html.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateIcon();
+    });
+  </script>
 </body>
 </html>

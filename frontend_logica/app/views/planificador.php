@@ -2,7 +2,7 @@
 // app/Views/planificador.php
 ?>
 <style>
-    /* Forzamos que todo el contenedor use el tema oscuro/glassmorphism */
+    /* Base (Modo Oscuro / Glassmorphism por defecto) */
     .planificador-container {
         color: var(--text);
         background: rgba(17, 24, 39, .6);
@@ -11,6 +11,184 @@
         box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
         padding: 30px;
         border-radius: 16px;
+    }
+
+    /* ============================================================
+       MODO CLARO (SOBREESCRITURA)
+       ============================================================ */
+    [data-theme="light"] .planificador-container {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    }
+
+    [data-theme="light"] .chef-header h2 {
+        color: #1e293b;
+    }
+
+    [data-theme="light"] .chef-header p {
+        color: #64748b;
+    }
+
+    [data-theme="light"] .config-panel {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    [data-theme="light"] .config-panel-title {
+        color: #1e293b;
+        border-bottom-color: #e2e8f0;
+    }
+
+    [data-theme="light"] .config-item label {
+        color: #475569;
+    }
+
+    [data-theme="light"] .config-item input,
+    [data-theme="light"] .config-item select {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        color: #1e293b;
+    }
+
+    [data-theme="light"] .chef-input {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        color: #1e293b;
+    }
+
+    [data-theme="light"] .dia-grupo {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+    }
+
+    [data-theme="light"] .dia-heading {
+        color: #0369a1;
+        border-bottom-color: #e2e8f0;
+    }
+
+    [data-theme="light"] .dia-card {
+        background: #ffffff;
+        border-color: #e2e8f0;
+        border-left-color: #3b82f6;
+        color: #1e293b;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    [data-theme="light"] .dia-card .plato-nombre {
+        color: #0f172a;
+        font-weight: 800;
+        font-size: 1.2em;
+    }
+
+    [data-theme="light"] .dia-card .plato-desc {
+        color: #2e4a70ff !important;
+        font-weight: 600;
+        line-height: 1.5;
+        font-size: 0.95em;
+    }
+
+    [data-theme="light"] .momento-tag {
+        color: #2563eb;
+        font-weight: 800;
+    }
+
+    [data-theme="light"] .dia-heading {
+        color: #1e3a8a;
+        border-bottom: 2px solid #cbd5e1;
+    }
+
+    [data-theme="light"] .ingredientes-meta {
+        background: #f1f5f9;
+        border-color: #e2e8f0;
+        color: #1e293b;
+    }
+
+    [data-theme="light"] .ingredientes-meta h4 {
+        color: #0f172a;
+        font-weight: 800;
+    }
+
+    [data-theme="light"] .ingredientes-meta ul {
+        color: #1e293b;
+        font-weight: 500;
+    }
+
+    [data-theme="light"] .ingredientes-meta p {
+        color: #1e293b;
+    }
+
+    [data-theme="light"] .check-item {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        color: #0f172a;
+    }
+
+    [data-theme="light"] .check-item label {
+        color: #0f172a;
+        font-weight: 600;
+    }
+
+    [data-theme="light"] .check-item:hover {
+        background: #f1f5f9;
+        border-color: #2563eb;
+    }
+
+    [data-theme="light"] .check-cantidad {
+        background: #e2e8f0;
+        color: #1e3a8a;
+        font-weight: 700;
+    }
+
+    [data-theme="light"] .checklist-actions {
+        background: #f1f5f9;
+    }
+
+    [data-theme="light"] .checklist-count {
+        color: #1e293b;
+    }
+
+    [data-theme="light"] .btn-checklist {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        color: #475569;
+    }
+
+    [data-theme="light"] .btn-checklist:hover {
+        background: #f8fafc;
+        color: #000;
+    }
+
+    #mapa-wrapper {
+        background: rgba(15, 23, 42, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+    }
+
+    #mapa-wrapper p { color: #94a3b8; }
+    .mapa-leyenda { color: #94a3b8; }
+
+    [data-theme="light"] #mapa-wrapper {
+        background: #ffffff;
+        border-color: #e2e8f0;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+    [data-theme="light"] #mapa-wrapper h3 { color: #0f172a; }
+    [data-theme="light"] #mapa-wrapper p { color: #334155; }
+    [data-theme="light"] .mapa-leyenda { color: #1e293b; font-weight: 600; }
+
+    [data-theme="light"] #loader h3 {
+        color: #1e293b;
+    }
+
+    [data-theme="light"] #loader p {
+        color: #64748b;
+    }
+
+    /* Fix para el dropdown de ciudad en modo claro */
+    [data-theme="light"] #ciudadSelect option {
+        background-color: #ffffff;
+        color: #1e293b;
     }
 
     .chef-header {
@@ -47,7 +225,7 @@
         font-size: 1.1em;
         transition: all 0.3s ease;
     }
-    
+
     .chef-input:focus {
         border-color: var(--pri);
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
@@ -92,7 +270,8 @@
     }
 
     /* Loader de cocina */
-    #loader, #loader-busqueda {
+    #loader,
+    #loader-busqueda {
         display: none;
         text-align: center;
         margin: 40px 0;
@@ -110,8 +289,13 @@
     }
 
     @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
     }
 
     /* Resultados */
@@ -120,15 +304,27 @@
         margin-top: 30px;
         animation: fadeIn 0.5s;
     }
-    
+
     @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     @keyframes shimmer {
-        0% { background-position: -468px 0; }
-        100% { background-position: 468px 0; }
+        0% {
+            background-position: -468px 0;
+        }
+
+        100% {
+            background-position: 468px 0;
+        }
     }
 
     .menu-container {
@@ -164,7 +360,9 @@
     }
 
     @media (max-width: 900px) {
-        .platos-fila { grid-template-columns: 1fr; }
+        .platos-fila {
+            grid-template-columns: 1fr;
+        }
     }
 
     .dia-card {
@@ -183,7 +381,9 @@
         flex-direction: column;
     }
 
-    .dia-card:hover { transform: translateY(-5px); }
+    .dia-card:hover {
+        transform: translateY(-5px);
+    }
 
     .plato-img {
         width: calc(100% + 40px);
@@ -210,7 +410,10 @@
     .plato-img::before {
         content: "";
         position: absolute;
-        top: 0; left: 0; width: 100%; height: 100%;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
         background: linear-gradient(to right, transparent 8%, #334155 18%, transparent 33%);
         background-size: 800px 160px;
         animation: shimmer 2s infinite linear;
@@ -265,8 +468,15 @@
         color: var(--text);
     }
 
-    .card-mercadona { background: rgba(0, 148, 50, 0.05); border-top: 5px solid #00b894; }
-    .card-dia { background: rgba(234, 32, 39, 0.05); border-top: 5px solid #ff7675; }
+    .card-mercadona {
+        background: rgba(0, 148, 50, 0.05);
+        border-top: 5px solid #00b894;
+    }
+
+    .card-dia {
+        background: rgba(234, 32, 39, 0.05);
+        border-top: 5px solid #ff7675;
+    }
 
     .price-tag {
         font-size: 1.8em;
@@ -315,7 +525,7 @@
         font-size: 1.25em;
         font-weight: bold;
         margin-bottom: 24px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     }
 
     .ingredientes-meta {
@@ -398,7 +608,8 @@
     .checklist-count {
         font-weight: 700;
         color: #f1f5f9;
-        margin-right: auto; /* push buttons to the right */
+        margin-right: auto;
+        /* push buttons to the right */
     }
 
     .btn-checklist {
@@ -439,7 +650,15 @@
         cursor: not-allowed;
         box-shadow: none;
     }
-    
+
+    .seccion-titulo {
+        color: #fff;
+    }
+
+    [data-theme="light"] .seccion-titulo {
+        color: #0f172a;
+    }
+
     /* Config panel */
     .config-panel {
         background: rgba(15, 23, 42, 0.6);
@@ -462,19 +681,19 @@
         text-transform: uppercase;
         letter-spacing: 1px;
     }
-    
+
     .config-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: 16px;
     }
-    
+
     .config-item label {
         font-size: 0.9em;
         margin-bottom: 8px;
         color: #94a3b8;
     }
-    
+
     /* Customize the comparison tables */
     .comp-header {
         padding: 20px;
@@ -482,17 +701,17 @@
         border: 1px solid #334155;
         border-bottom: none;
     }
-    
+
     .comp-header-m {
-        background: rgba(0, 184, 148, 0.1); 
+        background: rgba(0, 184, 148, 0.1);
         border-top: 5px solid #00b894;
     }
-    
+
     .comp-header-d {
-        background: rgba(255, 118, 117, 0.1); 
+        background: rgba(255, 118, 117, 0.1);
         border-top: 5px solid #ff7675;
     }
-    
+
     /* Pequeño Tooltip informativo */
     .info-tooltip {
         position: relative;
@@ -503,7 +722,7 @@
         font-weight: bold;
         font-size: 1.1em;
     }
-    
+
     .info-tooltip .tooltip-text {
         visibility: hidden;
         width: 320px;
@@ -522,10 +741,10 @@
         margin-left: -160px;
         opacity: 0;
         transition: opacity 0.3s;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
         border: 1px solid #334155;
     }
-    
+
     .info-tooltip .tooltip-text::after {
         content: "";
         position: absolute;
@@ -536,7 +755,7 @@
         border-style: solid;
         border-color: #334155 transparent transparent transparent;
     }
-    
+
     .info-tooltip:hover .tooltip-text {
         visibility: visible;
         opacity: 1;
@@ -580,7 +799,7 @@
             </div>
             <div class="config-item">
                 <label><strong>Ciudad:</strong></label>
-                <select id="ciudadSelect">
+                <select id="ciudadSelect" onchange="cambiarCiudadMapa(this.value)">
                     <option value="Valencia" selected>🏙️ Valencia</option>
                     <option value="Madrid">🏙️ Madrid</option>
                     <option value="Barcelona">🏙️ Barcelona</option>
@@ -615,24 +834,33 @@
 
     <div id="resultados">
         <div style="text-align: center; margin-bottom: 35px;">
-            <button id="btn-guardar" class="btn-guardar" onclick="guardarMenuEnHistorial()">💾 Guardar Menú y Lista en Historial</button>
-            <span id="mensaje-guardado" style="color: #10b981; font-weight: 700; font-size: 1.1em; display: none; margin-left: 15px;">✅ ¡Guardado en tu Dashboard!</span>
+            <button id="btn-guardar" class="btn-guardar" onclick="guardarMenuEnHistorial()">💾 Guardar Menú y Lista en
+                Historial</button>
+            <span id="mensaje-guardado"
+                style="color: #10b981; font-weight: 700; font-size: 1.1em; display: none; margin-left: 15px;">✅
+                ¡Guardado en tu Dashboard!</span>
         </div>
 
-        <h3 style="color: #fff; margin-bottom: 20px; font-size: 1.5em; display:flex; align-items:center; gap: 8px;">🍽️ Tu Menú Personalizado</h3>
+        <h3 class="seccion-titulo"
+            style="margin-bottom: 20px; font-size: 1.5em; display:flex; align-items:center; gap: 8px;">🍽️ Tu Menú
+            Personalizado</h3>
         <div id="menu-container" class="menu-grid"></div>
         <div id="ingredientes-meta" class="ingredientes-meta" style="display:none;"></div>
 
-        <h3 style="color: #fff; margin-bottom: 20px; margin-top: 40px; font-size: 1.5em; display:flex; align-items:center; gap: 8px;">🛒 Tu Lista de la Compra</h3>
+        <h3 class="seccion-titulo"
+            style="margin-bottom: 20px; margin-top: 40px; font-size: 1.5em; display:flex; align-items:center; gap: 8px;">
+            🛒 Tu Lista de la Compra</h3>
 
-        <div id="checklist-wrapper" class="ingredientes-meta" style="display:none;">
-            <h4>Selecciona los ingredientes que quieres comprar</h4>
+        <div id="checklist-wrapper" class="ingredientes-meta" style="display:none; margin-top: 25px;">
+            <h4 style="margin-bottom: 15px;">Selecciona los ingredientes que quieres comprar</h4>
             <div id="checklist-grid" class="checklist-grid"></div>
             <div class="checklist-actions">
                 <span class="checklist-count">Seleccionados: <span id="checklist-count">0</span></span>
-                <button type="button" class="btn-checklist" onclick="seleccionarTodoChecklist()">Seleccionar todo</button>
+                <button type="button" class="btn-checklist" onclick="seleccionarTodoChecklist()">Seleccionar
+                    todo</button>
                 <button type="button" class="btn-checklist" onclick="limpiarChecklist()">Quitar todo</button>
-                <button type="button" id="btn-buscar-checklist" class="btn-buscar" onclick="buscarConChecklist()" disabled>Buscar precios selecionados</button>
+                <button type="button" id="btn-buscar-checklist" class="btn-buscar" onclick="buscarConChecklist()"
+                    disabled>Buscar precios selecionados</button>
             </div>
             <div id="checklist-excluidos" style="margin-top:15px; color:#34d399; font-weight: 500;"></div>
         </div>
@@ -645,7 +873,8 @@
         <div id="comparativa-wrapper" style="display:none; margin-top: 30px;">
             <div id="winner-banner" class="winner-banner"></div>
 
-            <div id="comparison-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; margin-top: 20px;">
+            <div id="comparison-grid"
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; margin-top: 20px;">
                 <!-- Mercadona Header -->
                 <div class="comp-header comp-header-m">
                     <h3 style="color: #00b894; margin: 0; padding-bottom: 8px; font-size: 1.4em;">Mercadona</h3>
@@ -658,13 +887,16 @@
                 </div>
 
                 <!-- Filas de productos -->
-                <div id="list-container" style="grid-column: 1 / span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; background: rgba(15,23,42,0.4); padding: 15px; border-left: 1px solid #334155; border-right: 1px solid #334155;">
+                <div id="list-container"
+                    style="grid-column: 1 / span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; background: rgba(15,23,42,0.4); padding: 15px; border-left: 1px solid #334155; border-right: 1px solid #334155;">
                 </div>
 
                 <!-- Footers (No encontrados) -->
-                <div id="m-missing" style="background: rgba(0, 184, 148, 0.05); padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #334155; border-top: none; color: #fca5a5; font-size: 0.95em;">
+                <div id="m-missing"
+                    style="background: rgba(0, 184, 148, 0.05); padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #334155; border-top: none; color: #fca5a5; font-size: 0.95em;">
                 </div>
-                <div id="d-missing" style="background: rgba(255, 118, 117, 0.05); padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #334155; border-top: none; color: #fca5a5; font-size: 0.95em;">
+                <div id="d-missing"
+                    style="background: rgba(255, 118, 117, 0.05); padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #334155; border-top: none; color: #fca5a5; font-size: 0.95em;">
                 </div>
             </div>
         </div>
@@ -672,19 +904,34 @@
     </div>
     <!-- FIN RESULTADOS -->
 
-    <!-- ===== SECCIÓN MAPA ===== -->
-    <div id="mapa-wrapper" style="display:none; margin-top: 45px;">
-        <h3 style="color: #fff; margin-bottom: 12px; font-size: 1.5em; display:flex; align-items:center; gap: 8px;">🗺️ Supermercados cerca de ti</h3>
-        <p style="color: #94a3b8; margin-bottom: 20px; font-size: 1.05em; max-width: 800px;">
-            El precio mostrado en cada pin es el coste total de tu lista de la compra en esa cadena.
-            Haz clic en un supermercado para trazar la ruta desde tu ubicación.
+    <!-- ===== SECCIÓN MAPA: ABAJO DEL TODO Y SIEMPRE VISIBLE ===== -->
+    <div id="mapa-wrapper" class="glass-card" style="margin-top: 45px; padding: 25px; position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+            <h3 class="seccion-titulo" style="margin: 0; font-size: 1.4em; display:flex; align-items:center; gap: 8px;">🗺️ Supermercados Cerca de Ti</h3>
+            <button id="btn-smart-search" class="btn-buscar" style="margin: 0; padding: 8px 16px; font-size: 0.9em;" onclick="sugerirTiendasCercanas()">
+                ✨ Sugerir por mi ubicación real
+            </button>
+        </div>
+        <p class="mapa-desc" style="margin-bottom: 20px; line-height: 1.6;">
+            Encuentra tiendas de Mercadona y Dia cerca de tu zona. Haz clic en un marcador para ver precios (si ya has buscado precios antes) o trazar una ruta.
         </p>
-        <div id="mapa-supermercados" style="height: 520px; border-radius: 16px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.3); background: #0f172a; overflow: hidden;"></div>
-        <p style="font-size: 0.85em; color: #64748b; margin-top: 12px; text-align: center;">
-            📍 Ubicaciones de tiendas orientativas. Ruta calculada con OpenStreetMap/OSRM.
-        </p>
+
+        <div style="position: relative;">
+            <div id="mapa-supermercados"
+                style="height: 480px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.3); background: #0f172a; overflow: hidden;">
+            </div>
+            <!-- Panel de información de ruta flotante -->
+            <div id="info-ruta" style="position: absolute; top: 15px; right: 15px; z-index: 100; display: none;"></div>
+        </div>
+
+        <div id="mapa-leyenda" class="mapa-leyenda" style="margin-top: 15px; display: flex; gap: 20px; justify-content: center; font-size: 0.85em;">
+            <span style="display: flex; align-items: center; gap: 6px;"><span style="background:#009432; width:12px; height:12px; border-radius:50%;"></span> Mercadona</span>
+            <span style="display: flex; align-items: center; gap: 6px;"><span style="background:#EA2027; width:12px; height:12px; border-radius:50%;"></span> Dia</span>
+            <span style="display: flex; align-items: center; gap: 6px;"><span style="background:#3b82f6; width:12px; height:12px; border-radius:50%;"></span> Tu ubicación</span>
+        </div>
     </div>
     <!-- ===== FIN MAPA ===== -->
+
 </div>
 
 <script>
@@ -699,12 +946,22 @@
 
         if (savedPrompt) document.getElementById('prompt-chef').value = savedPrompt;
 
+        // INICIALIZAR MAPA SIEMPRE AL CARGAR
+        setTimeout(() => {
+            inicializarMapa(null, null, document.getElementById('ciudadSelect').value || 'Valencia');
+        }, 500);
+
         if (savedMenu) {
             try {
                 const data = JSON.parse(savedMenu);
                 currentMenuData = data;
                 renderizarMenu(data);
                 document.getElementById('resultados').style.display = 'block';
+
+                // Si hay datos guardados, actualizamos los precios en el mapa
+                if (data.comparativa) {
+                    finalizarCargaMapa(data.comparativa.cesta_mercadona.total, data.comparativa.cesta_dia.total, data.ciudad);
+                }
             } catch (e) { }
         }
     });
@@ -773,7 +1030,7 @@
 
     function renderizarMenu(data) {
         const menuDiv = document.getElementById('menu-container');
-        
+
         // Agrupar por día para visualización horizontal
         const diasAgrupados = {};
         data.menu.forEach(item => {
@@ -786,7 +1043,7 @@
             const platos = diasAgrupados[dia];
             // Normalizar el nombre del día para usarlo en IDs (elimina acentos y espacios)
             const diaId = dia.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\W/g, '');
-            
+
             return `
             <div class="dia-grupo">
                 <div class="dia-heading">
@@ -794,9 +1051,9 @@
                 </div>
                 <div class="platos-fila">
                     ${platos.map((p, idx) => {
-                        const cardId = `img-${diaId}-${idx}`;
-                        const momento = p.dia.split(' - ')[1] || '';
-                        return `
+                const cardId = `img-${diaId}-${idx}`;
+                const momento = p.dia.split(' - ')[1] || '';
+                return `
                         <div class="dia-card">
                             <div class="momento-tag">${momento}</div>
                             <div class="plato-img">
@@ -811,7 +1068,7 @@
                             <div class="plato-desc">${p.descripcion}</div>
                         </div>
                         `;
-                    }).join('')}
+            }).join('')}
                 </div>
             </div>
             `;
@@ -872,7 +1129,7 @@
                 <label for="${checkboxId}">${nombre}${frecuencia}</label>
                 ${cantidad ? `<span class="check-cantidad">${cantidad}</span>` : ''}
             </div>
-        `;
+            `;
         }).join('');
 
         excluidosDiv.innerHTML = excluidos.length > 0
@@ -937,7 +1194,6 @@
         document.getElementById('loader-busqueda').style.display = 'block';
 
         try {
-            const ciudad = document.getElementById('ciudadSelect').value;
             const payload = {
                 ingredientes: ingredientesSeleccionados,
                 alergias: alergias,
@@ -945,29 +1201,11 @@
                 ingredientes_en_casa: ingredientesEnCasa
             };
 
-            let response = null;
-            let lastNetworkError = null;
-
-            // Reintento corto para evitar fallos transitorios al reiniciar contenedores
-            for (let intento = 1; intento <= 2; intento++) {
-                try {
-                    response = await fetch('http://localhost:8001/comparar-lista-compra', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    break;
-                } catch (networkErr) {
-                    lastNetworkError = networkErr;
-                    if (intento === 1) {
-                        await new Promise(resolve => setTimeout(resolve, 800));
-                    }
-                }
-            }
-
-            if (!response) {
-                throw new Error(lastNetworkError?.message || 'No se pudo conectar con el servidor.');
-            }
+            let response = await fetch('http://localhost:8001/comparar-lista-compra', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
             if (!response.ok) {
                 const detalle = await response.text();
@@ -1001,7 +1239,7 @@
         let isMoreExpensiveTicket = false;
         if (comp.mejor_supermercado === 'Dia' && comp.cesta_dia.total > comp.cesta_mercadona.total) isMoreExpensiveTicket = true;
         if (comp.mejor_supermercado === 'Mercadona' && comp.cesta_mercadona.total > comp.cesta_dia.total) isMoreExpensiveTicket = true;
-        
+
         let savingsText = "";
         if (isMoreExpensiveTicket) {
             savingsText = `Invertirás <strong>${comp.ahorro_total}€ más</strong> en caja, pero obtienes mucho más producto por kilo/litro.`;
@@ -1024,7 +1262,7 @@
         <div style="font-size: 0.9em; font-weight: normal; margin-top: 5px;">
             ${savingsText}
         </div>
-    `;
+        `;
 
         banner.style.background = (comp.mejor_supermercado === 'Dia') ? '#fadbd8' : '#d4edda';
         banner.style.color = (comp.mejor_supermercado === 'Dia') ? '#721c24' : '#155724';
@@ -1039,7 +1277,7 @@
                 <span class="tooltip-text">El <b>Coste Proporcional</b> calcula matemáticamente lo que cuestan los gramos exactos que vas a consumir en tu menú. Sirve para comparar el precio real, ignorando si el supermercado te obliga a comprar envases de 5Kg o te permite comprar a granel.</span>
             </span>
         </div>
-    `;
+        `;
         document.getElementById('d-price').innerHTML = `
         <div style="font-weight: bold;">${comp.cesta_dia.total.toFixed(2)} €</div>
         <div style="font-size: 0.5em; color: #0984e3; display: flex; align-items: center; justify-content: center; gap: 4px;">
@@ -1048,7 +1286,7 @@
                 <span class="tooltip-text">El <b>Coste Proporcional</b> calcula matemáticamente lo que cuestan los gramos exactos que vas a consumir en tu menú. Sirve para comparar el precio real, ignorando si el supermercado te obliga a comprar envases de 5Kg o te permite comprar a granel.</span>
             </span>
         </div>
-    `;
+        `;
 
         // Renderizar Filas Alineadas
         const listContainer = document.getElementById('list-container');
@@ -1085,6 +1323,7 @@
         const dMiss = comp.cesta_dia.productos_no_encontrados || [];
         document.getElementById('m-missing').innerHTML = mMiss.length ? `❌ No disponible: ${mMiss.join(", ")}` : "";
         document.getElementById('d-missing').innerHTML = dMiss.length ? `❌ No disponible: ${dMiss.join(", ")}` : "";
+
         // Inicializar (o actualizar) el mapa con los precios actuales y la ciudad seleccionada
         inicializarMapa(comp.cesta_mercadona.total, comp.cesta_dia.total, ciudad);
     }
@@ -1129,15 +1368,12 @@
     `;
     }
 
-    // --- NUEVA FUNCIÓN PARA GUARDAR ---
     async function guardarMenuEnHistorial() {
         if (!currentMenuData || !currentMenuData.comparativa) {
             alert('Primero busca precios con tu selección para poder guardar.');
             return;
         }
 
-        // "Engañamos" un poco al save_basket.php enviándole los datos con la misma estructura que espera
-        // Pero además, le colamos nuestro menú generado por si en el futuro queremos mostrarlo en el dashboard.
         const payload = {
             mejor_supermercado: currentMenuData.comparativa.mejor_supermercado,
             ahorro_total: currentMenuData.comparativa.ahorro_total,
@@ -1174,248 +1410,383 @@
             btn.disabled = false;
         }
     }
+</script>
 
-// =====================================================================
-// MAPA DE SUPERMERCADOS
-// =====================================================================
-let mapaLeaflet = null;
-let routingControl = null;
-let mapaEnProceso = false;
-let intentosCargaLeaflet = 0;
-
-// Centros de las ciudades para el mapa
-const CENTROS_CIUDAD = {
-    'Valencia': [39.4699, -0.3763],
-    'Madrid': [40.4168, -3.7038],
-    'Barcelona': [41.3851, 2.1734],
-    'Sevilla': [37.3891, -5.9845],
-    'Malaga': [36.7213, -4.4214],
-    'Zaragoza': [41.6488, -0.8891],
-    'Bilbao': [43.2630, -2.9350]
-};
-
-// Tiendas reales (coordenadas orientativas) por ciudad
-const SUPERMERCADOS_POR_CIUDAD = {
-    'Valencia': [
-        { cadena: 'mercadona', nombre: 'Mercadona Gran Vía', lat: 39.4697, lng: -0.3755, direccion: 'Av. Marqués de Sotelo, Valencia' },
-        { cadena: 'mercadona', nombre: 'Mercadona Sagunto', lat: 39.4804, lng: -0.3766, direccion: 'C/ Sagunto, Valencia' },
-        { cadena: 'mercadona', nombre: 'Mercadona Ruzafa', lat: 39.4586, lng: -0.3737, direccion: 'Av. Giorgeta, Valencia' },
-        { cadena: 'mercadona', nombre: 'Mercadona Campanar', lat: 39.4847, lng: -0.3942, direccion: 'Av. Constitución, Valencia' },
-        { cadena: 'dia', nombre: 'Día San Vicente', lat: 39.4630, lng: -0.3810, direccion: 'C/ San Vicente Mártir, Valencia' },
-        { cadena: 'dia', nombre: 'Día Russafa', lat: 39.4599, lng: -0.3757, direccion: 'Av. de la Plata, Valencia' }
-    ],
-    'Madrid': [
-        { cadena: 'mercadona', nombre: 'Mercadona Fuencarral', lat: 40.4265, lng: -3.7011, direccion: 'C/ de Fuencarral, 77, Madrid' },
-        { cadena: 'mercadona', nombre: 'Mercadona Goya', lat: 40.4250, lng: -3.6750, direccion: 'C/ de Goya, Madrid' },
-        { cadena: 'dia', nombre: 'Día Princesa', lat: 40.4283, lng: -3.7135, direccion: 'C/ de la Princesa, 20, Madrid' },
-        { cadena: 'dia', nombre: 'Día Atocha', lat: 40.4080, lng: -3.6920, direccion: 'C/ de Atocha, Madrid' }
-    ],
-    'Barcelona': [
-        { cadena: 'mercadona', nombre: 'Mercadona Eixample', lat: 41.3888, lng: 2.1557, direccion: 'C/ de Mallorca, 133, Barcelona' },
-        { cadena: 'mercadona', nombre: 'Mercadona Born', lat: 41.3850, lng: 2.1850, direccion: 'C/ Comercial, Barcelona' },
-        { cadena: 'dia', nombre: 'Día Diputació', lat: 41.3861, lng: 2.1592, direccion: 'Carrer de la Diputació, 184, Barcelona' }
-    ],
-    'Sevilla': [
-        { cadena: 'mercadona', nombre: 'Mercadona Plaza de Armas', lat: 37.3910, lng: -6.0020, direccion: 'Plaza de Armas, Sevilla' },
-        { cadena: 'dia', nombre: 'Día Feria', lat: 37.3980, lng: -5.9910, direccion: 'C/ Feria, Sevilla' }
-    ],
-    'Malaga': [
-        { cadena: 'mercadona', nombre: 'Mercadona Centro', lat: 36.7220, lng: -4.4250, direccion: 'C/ Hilera, Málaga' },
-        { cadena: 'dia', nombre: 'Día El Perchel', lat: 36.7150, lng: -4.4280, direccion: 'C/ Cuarteles, Málaga' }
-    ],
-    'Zaragoza': [
-        { cadena: 'mercadona', nombre: 'Mercadona Autonomía', lat: 41.6480, lng: -0.8870, direccion: 'C/ de la Autonomía, 7, Zaragoza' },
-        { cadena: 'dia', nombre: 'Día San Pablo', lat: 41.6550, lng: -0.8860, direccion: 'C/ de San Pablo, 19, Zaragoza' }
-    ],
-    'Bilbao': [
-        { cadena: 'mercadona', nombre: 'Mercadona Urquijo', lat: 43.2610, lng: -2.9330, direccion: 'Alameda de Urquijo, 24, Bilbao' },
-        { cadena: 'dia', nombre: 'Día Ribera', lat: 43.2590, lng: -2.9250, direccion: 'C/ de la Ribera, 22, Bilbao' }
-    ]
-};
-
-function inicializarMapa(precioMercadona, precioDia, ciudadSelection = 'Valencia') {
-    const wrapper = document.getElementById('mapa-wrapper');
-    if (wrapper) {
-        wrapper.style.display = 'block';
-        // Actualizar título dinámicamente
-        const mapTitle = wrapper.querySelector('h3');
-        if (mapTitle) mapTitle.innerText = `🗺️ Supermercados cerca de ti en ${ciudadSelection}`;
+<!-- Estilos para los Marcadores Avanzados -->
+<style>
+    .marker-pin {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: white;
+        border: 2px solid #fff;
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    // Guard: si Leaflet no está disponible aún, reintentar tras 300ms
-    if (typeof L === 'undefined') {
-        intentosCargaLeaflet++;
-        if (intentosCargaLeaflet > 20) {
-            const mapDiv = document.getElementById('mapa-supermercados');
-            if (mapDiv) mapDiv.innerHTML = `<div style="padding:20px; color:#c0392b; text-align:center;">
-                <strong>⚠️ Error de carga:</strong> No se pudo cargar la librería de mapas (Leaflet). <br>
-                Esto puede deberse a un problema de conexión o a que el navegador bloqueó el script.
-            </div>`;
+    .marker-pin:hover {
+        transform: scale(1.2) translateY(-5px);
+    }
+
+    .marker-pin img {
+        width: 75%;
+        height: 75%;
+        object-fit: contain;
+    }
+
+    .marker-mercadona {
+        border-color: #009432;
+        box-shadow: 0 0 20px rgba(0, 148, 50, 0.5);
+    }
+
+    .marker-dia {
+        border-color: #EA2027;
+        box-shadow: 0 0 20px rgba(234, 32, 39, 0.5);
+    }
+
+    .pulse-effect {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: inherit;
+        opacity: 0.5;
+        animation: pulse 2s infinite;
+        z-index: -1;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+            opacity: 0.5;
+        }
+
+        100% {
+            transform: scale(2.5);
+            opacity: 0;
+        }
+    }
+</style>
+
+<!-- Google Maps SDK v3.56+ con librerías necesarias -->
+<script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB26cdqh9546DPfvXUlsh0ilyI52pP77gM&libraries=marker,places&v=weekly"></script>
+
+<script>
+    // =====================================================================
+    // MAPA DE SUPERMERCADOS CON GOOGLE MAPS PLATFORM
+    // =====================================================================
+    let googleMap = null;
+    let directionsService = null;
+    let directionsRenderer = null;
+    let googleMarkers = [];
+    let currentInfoWindow = null;
+
+    const CENTROS_CIUDAD = {
+        'Valencia': { lat: 39.4699, lng: -0.3763 },
+        'Madrid': { lat: 40.4168, lng: -3.7038 },
+        'Barcelona': { lat: 41.3851, lng: 2.1734 },
+        'Sevilla': { lat: 37.3891, lng: -5.9845 },
+        'Malaga': { lat: 36.7213, lng: -4.4214 },
+        'Zaragoza': { lat: 41.6488, lng: -0.8891 },
+        'Bilbao': { lat: 43.2630, lng: -2.9350 }
+    };
+
+    async function sugerirTiendasCercanas() {
+        if (typeof google === 'undefined') {
+            setTimeout(sugerirTiendasCercanas, 500);
             return;
         }
-        setTimeout(() => inicializarMapa(precioMercadona, precioDia, ciudadSelection), 300);
-        return;
-    }
-    intentosCargaLeaflet = 0; // reset si carga ok
 
-    // Parte 1: Asegurar que el objeto mapa existe
-    if (!mapaLeaflet) {
-        if (mapaEnProceso) return;
-        mapaEnProceso = true;
+        if (!navigator.geolocation) return alert("Geolocalización no soportada.");
 
-        // Pequeño retardo para asegurar que el DOM ha aplicado el display:block
-        setTimeout(() => {
-            try {
-                if (!mapaLeaflet) {
-                    const coordsCentro = CENTROS_CIUDAD[ciudadSelection] || CENTROS_CIUDAD['Valencia'];
-                    mapaLeaflet = L.map('mapa-supermercados').setView(coordsCentro, 13);
-                    
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                        maxZoom: 19
-                    }).addTo(mapaLeaflet);
+        const btn = document.getElementById('btn-smart-search');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "⏳ Buscando en Google Maps...";
+        btn.disabled = true;
+
+        navigator.geolocation.getCurrentPosition(
+            async pos => {
+                const uLat = pos.coords.latitude;
+                const uLng = pos.coords.longitude;
+                const userLoc = { lat: uLat, lng: uLng };
+
+                try {
+                    if (!googleMap) inicializarMapa(null, null);
+
+                    const placesService = new google.maps.places.PlacesService(googleMap);
+
+                    const buscarEnGoogle = (brand) => {
+                        return new Promise((resolve) => {
+                            const request = {
+                                location: userLoc,
+                                radius: '15000', // 15km
+                                query: `supermercado ${brand}`
+                            };
+                            placesService.textSearch(request, (results, status) => {
+                                if (status === google.maps.places.PlacesServiceStatus.OK) {
+                                    resolve(results.map(r => ({
+                                        cadena: brand.toLowerCase(),
+                                        nombre: brand,
+                                        lat: r.geometry.location.lat(),
+                                        lng: r.geometry.location.lng(),
+                                        direccion: r.formatted_address || r.name,
+                                        placeId: r.place_id
+                                    })));
+                                } else {
+                                    resolve([]);
+                                }
+                            });
+                        });
+                    };
+
+                    const [mRes, dRes] = await Promise.all([buscarEnGoogle('Mercadona'), buscarEnGoogle('Dia')]);
+                    const todas = [...mRes, ...dRes];
+
+                    if (todas.length === 0) throw new Error("Google no ha encontrado tiendas cerca de tu posición.");
+
+                    // Calcular distancias reales y ordenar
+                    todas.forEach(t => {
+                        t.distancia = calcularDistancia(uLat, uLng, t.lat, t.lng);
+                    });
+                    todas.sort((a, b) => a.distancia - b.distancia);
+
+                    const masCercanos = [];
+                    const foundM = todas.find(t => t.cadena === 'mercadona');
+                    const foundD = todas.find(t => t.cadena === 'dia');
+                    if (foundM) masCercanos.push(foundM);
+                    if (foundD) masCercanos.push(foundD);
+
+                    let pM = currentMenuData?.comparativa?.cesta_mercadona?.total || null;
+                    let pD = currentMenuData?.comparativa?.cesta_dia?.total || null;
+
+                    finalizarCargaMapa(pM, pD, 'Valencia', masCercanos);
+
+                    // Centrar en usuario y tiendas
+                    const bounds = new google.maps.LatLngBounds();
+                    bounds.extend(userLoc);
+                    masCercanos.forEach(s => bounds.extend({ lat: s.lat, lng: s.lng }));
+                    googleMap.fitBounds(bounds);
+
+                    // Marcador de usuario con estilo premium
+                    const userMarkerEl = document.createElement('div');
+                    userMarkerEl.className = 'marker-pin';
+                    userMarkerEl.style.backgroundColor = '#3b82f6';
+                    userMarkerEl.style.boxShadow = '0 0 25px rgba(59,130,246,0.8)';
+                    userMarkerEl.innerHTML = '<div class="pulse-effect"></div><div style="width:10px; height:10px; background:white; border-radius:50%;"></div>';
+
+                    new google.maps.marker.AdvancedMarkerElement({
+                        position: userLoc,
+                        map: googleMap,
+                        content: userMarkerEl,
+                        title: "Tu posición"
+                    });
+
+                } catch (error) {
+                    alert("Aviso: " + error.message);
+                } finally {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
                 }
-            } catch (e) {
-                console.error("Error inicializando mapa:", e);
-                mapaEnProceso = false;
-                return;
-            }
-            // Una vez creado, procedemos a la Parte 2 (dentro del mismo timeout o rellamando)
-            mapaEnProceso = false;
-            finalizarCargaMapa(precioMercadona, precioDia, ciudadSelection);
-        }, 300);
-    } else {
-        // El mapa ya existe, solo actualizamos vista y contenido
+            },
+            err => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                alert("Error de GPS: " + err.message);
+            },
+            { timeout: 10000 }
+        );
+    }
+
+    function inicializarMapa(precioMercadona, precioDia, ciudadSelection = 'Valencia') {
+        if (typeof google === 'undefined') {
+            setTimeout(() => inicializarMapa(precioMercadona, precioDia, ciudadSelection), 500);
+            return;
+        }
+        const wrapper = document.getElementById('mapa-wrapper');
+        if (wrapper) {
+            wrapper.style.display = 'block';
+        }
+
+        const coordsCentro = CENTROS_CIUDAD[ciudadSelection] || CENTROS_CIUDAD['Valencia'];
+
+        if (!googleMap) {
+            googleMap = new google.maps.Map(document.getElementById('mapa-supermercados'), {
+                center: coordsCentro,
+                zoom: 13,
+                mapId: '8eceaba97ef31046', // MAP ID Premium para Advanced Markers
+                disableDefaultUI: false,
+                zoomControl: true,
+                styles: [
+                    { "featureType": "all", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
+                    { "featureType": "all", "elementType": "labels.text.fill", "stylers": [{ "color": "#94a3b8" }] },
+                    { "featureType": "all", "elementType": "labels.text.stroke", "stylers": [{ "visibility": "off" }] },
+                    { "featureType": "administrative", "elementType": "geometry.stroke", "stylers": [{ "color": "#334155" }, { "weight": 1.2 }] },
+                    { "featureType": "landscape", "elementType": "geometry", "stylers": [{ "color": "#0f172a" }] },
+                    { "featureType": "poi", "elementType": "all", "stylers": [{ "visibility": "off" }] },
+                    { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
+                    { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#334155" }] },
+                    { "featureType": "road.highway", "elementType": "geometry.stroke", "stylers": [{ "color": "#1e293b" }, { "weight": 0.1 }] },
+                    { "featureType": "road.arterial", "elementType": "geometry", "stylers": [{ "color": "#334155" }] },
+                    { "featureType": "transit", "elementType": "geometry", "stylers": [{ "color": "#1e293b" }] },
+                    { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#020617" }] }
+                ]
+            });
+
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                map: googleMap,
+                suppressMarkers: true,
+                polylineOptions: { strokeColor: "#3b82f6", strokeWeight: 6, strokeOpacity: 0.8 }
+            });
+        }
+
         finalizarCargaMapa(precioMercadona, precioDia, ciudadSelection);
     }
-}
 
-// Nueva función interna para manejar la actualización de vista y markers
-function finalizarCargaMapa(precioMercadona, precioDia, ciudadSelection) {
-    if (!mapaLeaflet) return;
-
-    const coordsCentro = CENTROS_CIUDAD[ciudadSelection] || CENTROS_CIUDAD['Valencia'];
-    
-    // Forzar actualización de tamaño y vista
-    setTimeout(() => {
-        mapaLeaflet.invalidateSize();
-        mapaLeaflet.setView(coordsCentro, 13);
-    }, 100);
-
-    // Limpiar capas anteriores (markers y rutas)
-    mapaLeaflet.eachLayer(layer => {
-        if (layer instanceof L.Marker || (layer instanceof L.Polyline && !(layer instanceof L.TileLayer))) {
-            mapaLeaflet.removeLayer(layer);
+    function cambiarCiudadMapa(nuevaCiudad) {
+        if (!googleMap) return;
+        const coords = CENTROS_CIUDAD[nuevaCiudad];
+        if (coords) {
+            googleMap.setCenter(coords);
+            googleMap.setZoom(13);
+            // Actualizar marcadores locales para la nueva ciudad
+            let pM = currentMenuData?.comparativa?.cesta_mercadona?.total || null;
+            let pD = currentMenuData?.comparativa?.cesta_dia?.total || null;
+            finalizarCargaMapa(pM, pD, nuevaCiudad);
         }
-    });
-
-    // Dibujar tiendas de la ciudad seleccionada
-    const tiendas = SUPERMERCADOS_POR_CIUDAD[ciudadSelection] || SUPERMERCADOS_POR_CIUDAD['Valencia'];
-
-    // Iconos (redéfinidos o globales si se prefiere, aquí los usamos inline para seguridad)
-    const iconoMercadona = L.divIcon({
-        className: '',
-        html: `<div style="background:#009432;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">🟢</div>`,
-        iconSize: [36, 36],
-        iconAnchor: [18, 36],
-        popupAnchor: [0, -38]
-    });
-
-    const iconoDia = L.divIcon({
-        className: '',
-        html: `<div style="background:#EA2027;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">🔴</div>`,
-        iconSize: [36, 36],
-        iconAnchor: [18, 36],
-        popupAnchor: [0, -38]
-    });
-
-    tiendas.forEach(store => {
-        const icono = store.cadena === 'mercadona' ? iconoMercadona : iconoDia;
-        const marker = L.marker([store.lat, store.lng], { icon: icono })
-            .addTo(mapaLeaflet)
-            .bindPopup(construirPopup(store, precioMercadona, precioDia), { maxWidth: 280 });
-        marker._storeData = store;
-
-        marker.on('click', function() {
-            marker.openPopup();
-        });
-    });
-
-    // Re-añadir leyenda si no está (o simplemente dejarla si es estática)
-    // Para simplificar, la leyenda se añade solo la primera vez en inicializarMapa si se prefiere, 
-    // pero aquí ya tenemos el flujo de actualización.
-}
-
-function construirPopup(store, precioMercadona, precioDia) {
-    const esMercadona = store.cadena === 'mercadona';
-    const color = esMercadona ? '#009432' : '#EA2027';
-    const precio = esMercadona ? precioMercadona : precioDia;
-    const precioHtml = precio != null
-        ? `<div style="font-size:1.4em;font-weight:bold;color:${color};margin:8px 0;">${precio.toFixed(2)} €</div><div style="font-size:0.8em;color:#777;">coste de tu lista de la compra</div>`
-        : `<div style="color:#aaa;font-size:0.85em;margin:8px 0;">Busca precios primero</div>`;
-
-    const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${store.lat},${store.lng}&travelmode=walking`;
-
-    return `
-        <div style="font-family:sans-serif;min-width:200px;">
-            <div style="font-weight:bold;font-size:1em;color:${color};border-bottom:2px solid ${color};padding-bottom:4px;margin-bottom:6px;">${store.nombre}</div>
-            <div style="color:#555;font-size:0.85em;margin-bottom:4px;">📍 ${store.direccion}</div>
-            ${precioHtml}
-            <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
-                <button onclick="trazarRuta(${store.lat}, ${store.lng})"
-                    style="background:#0984e3;color:white;border:none;padding:7px 12px;border-radius:5px;cursor:pointer;font-size:0.85em;font-weight:bold;">
-                    🗺️ Ruta aquí
-                </button>
-                <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer"
-                    style="background:#34495e;color:white;padding:7px 12px;border-radius:5px;font-size:0.85em;font-weight:bold;text-decoration:none;display:inline-block;">
-                    📱 Google Maps
-                </a>
-            </div>
-        </div>`;
-}
-
-function trazarRuta(destLat, destLng) {
-    if (!mapaLeaflet || typeof L === 'undefined') return;
-
-    if (!navigator.geolocation) {
-        alert('Tu navegador no soporta geolocalización. Usa el botón de Google Maps.');
-        return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-        pos => {
-            const origen = [pos.coords.latitude, pos.coords.longitude];
+    function finalizarCargaMapa(precioMercadona, precioDia, ciudadSelection, listaTiendasCustom = null) {
+        googleMarkers.forEach(m => m.map = null);
+        googleMarkers = [];
+        if (directionsRenderer) directionsRenderer.setDirections({ routes: [] });
 
-            // Eliminar ruta anterior si existe
-            if (routingControl) {
-                mapaLeaflet.removeControl(routingControl);
-                routingControl = null;
-            }
+        const tiendas = listaTiendasCustom || [
+            { cadena: 'mercadona', nombre: 'Mercadona Local', lat: CENTROS_CIUDAD[ciudadSelection].lat + 0.005, lng: CENTROS_CIUDAD[ciudadSelection].lng + 0.005, direccion: 'Cerca del centro' },
+            { cadena: 'dia', nombre: 'Día Local', lat: CENTROS_CIUDAD[ciudadSelection].lat - 0.005, lng: CENTROS_CIUDAD[ciudadSelection].lng - 0.005, direccion: 'Cerca del centro' }
+        ];
 
-            routingControl = L.Routing.control({
-                waypoints: [
-                    L.latLng(origen[0], origen[1]),
-                    L.latLng(destLat, destLng)
-                ],
-                routeWhileDragging: false,
-                addWaypoints: false,
-                draggableWaypoints: false,
-                fitSelectedRoutes: true,
-                show: true,
-                lineOptions: {
-                    styles: [{ color: '#0984e3', weight: 5, opacity: 0.8 }]
-                },
-                createMarker: (i, wp) => {
-                    const label = i === 0 ? '📍 Tú' : '🛒 Destino';
-                    return L.marker(wp.latLng).bindPopup(label);
+        tiendas.forEach(store => {
+            // Crear elemento HTML para el marcador avanzado
+            const pinEl = document.createElement('div');
+            pinEl.className = `marker-pin marker-${store.cadena}`;
+
+            const domain = store.cadena === 'mercadona' ? 'mercadona.es' : 'dia.es';
+            const logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+
+            pinEl.innerHTML = `<div class="pulse-effect"></div><img src="${logoUrl}" alt="${store.nombre}" style="border-radius: 4px;">`;
+
+            const marker = new google.maps.marker.AdvancedMarkerElement({
+                position: { lat: store.lat, lng: store.lng },
+                map: googleMap,
+                content: pinEl,
+                title: store.nombre
+            });
+
+            marker.addListener('click', () => {
+                if (currentInfoWindow) currentInfoWindow.close();
+                const content = construirPopup(store, precioMercadona, precioDia);
+                currentInfoWindow = new google.maps.InfoWindow({ content });
+                currentInfoWindow.open(googleMap, marker);
+            });
+
+            googleMarkers.push(marker);
+        });
+    }
+
+    function trazarRuta(destLat, destLng) {
+        if (!navigator.geolocation) return alert("GPS no disponible");
+
+        navigator.geolocation.getCurrentPosition(pos => {
+            const uLat = pos.coords.latitude;
+            const uLng = pos.coords.longitude;
+            const request = {
+                origin: { lat: uLat, lng: uLng },
+                destination: { lat: parseFloat(destLat), lng: parseFloat(destLng) },
+                travelMode: 'DRIVING'
+            };
+
+            directionsService.route(request, (result, status) => {
+                if (status === 'OK') {
+                    directionsRenderer.setDirections(result);
+                    if (currentInfoWindow) currentInfoWindow.close();
+
+                    // Extraer info de la ruta
+                    const route = result.routes[0].legs[0];
+                    const infoPanel = document.getElementById('info-ruta');
+                    if (infoPanel) {
+                        infoPanel.style.display = 'block';
+                        infoPanel.innerHTML = `
+                        <div style="background: rgba(255,255,255,0.95); padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid #ddd; min-width: 200px; backdrop-filter: blur(10px);">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                                <strong style="color:#1e293b; font-size:1.1em;">Resumen de Ruta</strong>
+                                <button onclick="document.getElementById('info-ruta').style.display='none'" style="border:none; background:none; cursor:pointer; font-size:1.2em; color:#999;">&times;</button>
+                            </div>
+                            <div style="display:flex; gap:15px; margin-bottom:12px;">
+                                <div>
+                                    <div style="font-size:0.7em; color:#64748b; text-transform:uppercase; font-weight:700;">Tiempo</div>
+                                    <div style="font-size:1.2em; font-weight:800; color:#3b82f6;">${route.duration.text}</div>
+                                </div>
+                                <div style="border-left: 1px solid #e2e8f0; padding-left:15px;">
+                                    <div style="font-size:0.7em; color:#64748b; text-transform:uppercase; font-weight:700;">Distancia</div>
+                                    <div style="font-size:1.2em; font-weight:800; color:#1e293b;">${route.distance.text}</div>
+                                </div>
+                            </div>
+                            <a href="https://www.google.com/maps/dir/?api=1&origin=${uLat},${uLng}&destination=${destLat},${destLng}&travelmode=driving" 
+                               target="_blank"
+                               style="display:block; text-align:center; background:#10b981; color:white; text-decoration:none; padding:10px; border-radius:8px; font-weight:700; font-size:0.9em;">
+                               🚀 Iniciar Navegación GPS
+                            </a>
+                        </div>
+                    `;
+                    }
+                } else {
+                    alert("No se pudo calcular la ruta: " + status);
                 }
-            }).addTo(mapaLeaflet);
-        },
-        err => {
-            alert('No se pudo obtener tu ubicación. Asegúrate de dar permiso de localización al navegador.');
-            console.warn('Geolocation error:', err);
-        },
-        { timeout: 8000 }
-    );
-}
+            });
+        });
+    }
+
+    function construirPopup(store, precioMercadona, precioDia) {
+        const precio = store.cadena === 'mercadona' ? precioMercadona : precioDia;
+        const color = store.cadena === 'mercadona' ? '#009432' : '#EA2027';
+        const domain = store.cadena === 'mercadona' ? 'mercadona.es' : 'dia.es';
+        const logoUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+
+        return `
+        <div style="font-family: 'Inter', sans-serif; padding: 10px; min-width: 220px; color: #1e293b;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <img src="${logoUrl}" style="width:24px; height:24px; object-fit: contain; border-radius: 4px;">
+                <div style="color: ${color}; font-weight: 800; font-size: 1.1em;">${store.nombre}</div>
+            </div>
+            <div style="color: #64748b; font-size: 0.85em; margin-bottom: 12px; line-height:1.4;">${store.direccion}</div>
+            ${precio ? `
+                <div style="background: #f1f5f9; padding: 10px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid ${color};">
+                    <div style="font-size: 0.7em; color: #94a3b8; text-transform: uppercase; font-weight:700;">Coste de tu lista</div>
+                    <div style="font-size: 1.3em; font-weight: 800; color: #0f172a;">${precio.toFixed(2)} €</div>
+                </div>
+            ` : ''}
+            <button onclick="trazarRuta(${store.lat}, ${store.lng})" 
+                    style="width: 100%; background: ${color}; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 700; cursor: pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition: opacity 0.2s;">
+                🚗 Calcular Ruta
+            </button>
+        </div>
+    `;
+    }
+
+    function calcularDistancia(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
 </script>
