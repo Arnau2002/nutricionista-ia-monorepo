@@ -1474,7 +1474,7 @@
 
 <!-- Google Maps SDK v3.56+ con librerías necesarias -->
 <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB26cdqh9546DPfvXUlsh0ilyI52pP77gM&libraries=marker,places&v=weekly"></script>
+    src="https://maps.googleapis.com/maps/api/js?key=<?php echo getenv('GOOGLE_MAPS_API_KEY'); ?>&libraries=marker,places&v=weekly"></script>
 
 <script>
     // =====================================================================
@@ -1618,7 +1618,7 @@
             googleMap = new google.maps.Map(document.getElementById('mapa-supermercados'), {
                 center: coordsCentro,
                 zoom: 13,
-                mapId: '8eceaba97ef31046', // MAP ID Premium para Advanced Markers
+                mapId: '<?php echo getenv("MAP_ID"); ?>', // MAP ID Premium para Advanced Markers
                 disableDefaultUI: false,
                 zoomControl: true,
                 styles: [
