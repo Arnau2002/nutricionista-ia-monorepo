@@ -5,13 +5,14 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Añadir etl-scripts al path para poder importar
-sys.path.append(os.path.join(os.getcwd(), 'etl-scripts'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'etl-scripts'))
 
 try:
     from MERCADONA.mercadona import gestion_mercadona
     from DIA.dia_unificado import gestion_dia
     from clean_data import limpiar_datos_multi_ciudad  # Necesito asegurar este nombre
     from load_data import cargar_datos_qdrant
+    import cookie_fetcher
 except ImportError as e:
     print(f"❌ Error importando módulos: {e}")
     sys.exit(1)
@@ -21,6 +22,14 @@ def run_full_etl(cities):
     print(f"INICIANDO ETL PRO MASTER - {start_time.strftime('%H:%M:%S')}")
     print(f"Ciudades: {', '.join(cities)}")
     print("-" * 50)
+
+    # 0. Actualizar Cookies Automáticamente
+    print("🔄 [Paso 0] Refrescando cookies de Dia...")
+    try:
+        cookie_fetcher.run_cookie_fetcher(cities)
+    except Exception as e:
+        print(f"⚠️ Error al refrescar cookies: {e}")
+        print("Continuando con cookies existentes si las hay...")
 
     all_data = []
 
@@ -76,15 +85,29 @@ def run_full_etl(cities):
     print(f"Finalizado a las: {end_time.strftime('%H:%M:%S')}")
 
 if __name__ == "__main__":
+    import argparse
+    import time
+
     supported_cities = ["valencia", "madrid", "barcelona", "sevilla", "malaga", "zaragoza", "bilbao"]
     
-    if len(sys.argv) < 2:
-        print("Uso: python etl_pro_master.py <ciudad1> <ciudad2> ... o 'all'")
-        sys.exit(1)
-        
-    if sys.argv[1].lower() == "all":
+    parser = argparse.ArgumentParser(description="ETL Master para Nutricionista IA")
+    parser.add_argument("cities", nargs="*", default=["all"], help="Ciudades a procesar o 'all'")
+    parser.add_argument("--daemon", action="store_true", help="Ejecutar en modo daemon (bucle infinito)")
+    parser.add_argument("--interval", type=int, default=24, help="Intervalo en horas para el modo daemon")
+
+    args = parser.parse_args()
+
+    if "all" in [c.lower() for c in args.cities]:
         target_cities = supported_cities
     else:
-        target_cities = [c.lower() for c in sys.argv[1:]]
+        target_cities = [c.lower() for c in args.cities]
         
-    run_full_etl(target_cities)
+    if args.daemon:
+        print(f"Iniciando en modo DAEMON. Ejecución cada {args.interval} horas.")
+        while True:
+            run_full_etl(target_cities)
+            next_run = datetime.now() + pd.Timedelta(hours=args.interval)
+            print(f"💤 Durmiendo. Próxima ejecución: {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
+            time.sleep(args.interval * 3600)
+    else:
+        run_full_etl(target_cities)

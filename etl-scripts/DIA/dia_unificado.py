@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import json
 
 # Cargar variables de entorno (para COOKIE_DIA)
 load_dotenv()
@@ -32,11 +33,27 @@ POSTAL_CODES_DIA = {
 def get_headers_dia(city_name=None):
     """Genera las cabeceras dinámicamente usando la cookie específica de la ciudad si existe."""
     cookie = ""
+    env_var = ""
     if city_name:
         env_var = f"COOKIE_DIA_{city_name.upper()}"
-        cookie = os.getenv(env_var, os.getenv("COOKIE_DIA", ""))
-    else:
-        cookie = os.getenv("COOKIE_DIA", "")
+    
+    # 1. Intentar leer del archivo local json primero
+    cookies_file = os.path.join(os.path.dirname(__file__), '..', 'cookies.json')
+    if os.path.exists(cookies_file):
+        try:
+            with open(cookies_file, 'r') as f:
+                cookies_data = json.load(f)
+                if env_var and env_var in cookies_data:
+                    cookie = cookies_data[env_var]
+        except Exception:
+            pass
+
+    # 2. Si no hay cookie en el JSON, intentar del .env
+    if not cookie:
+        if city_name:
+            cookie = os.getenv(env_var, os.getenv("COOKIE_DIA", ""))
+        else:
+            cookie = os.getenv("COOKIE_DIA", "")
         
     return {
         'Accept': 'application/json, text/plain, */*',
@@ -172,17 +189,17 @@ def get_products_by_category_dia(category_id, session, city_name):
                     'precio_referencia': precio_ref,
                     'categoria': category_id, 
                     'tienda': 'Dia',
-                'ciudad': city_name.capitalize(),
-                'fecha_extraccion': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-            products_list.append(product_data)
+                    'ciudad': city_name.capitalize(),
+                    'fecha_extraccion': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                products_list.append(product_data)
         
-        page += 1
-        time.sleep(0.5) 
+            page += 1
+            time.sleep(0.5) 
         
-    except Exception as e:
-        print(f"⚠️ Error en pág {page} de {category_id}: {e}")
-        break
+        except Exception as e:
+            print(f"⚠️ Error en pág {page} de {category_id}: {e}")
+            break
         
     return products_list
 
@@ -197,8 +214,8 @@ def gestion_dia(city=None):
     local_session = requests.Session()
     
     # Verificamos si tenemos cookie para esta ciudad
-    env_var = f"COOKIE_DIA_{city_name.upper()}"
-    current_cookie = os.getenv(env_var, os.getenv("COOKIE_DIA", ""))
+    headers_check = get_headers_dia(city_name)
+    current_cookie = headers_check.get('Cookie', '')
 
     if not current_cookie:
         print(f"ERROR: No hay COOKIE_DIA para {city_name}. DIA podria bloquear la peticion.")

@@ -144,7 +144,8 @@ def cargar_datos_qdrant(df):
                                  {"pid": prod_id, "sid": store_id, "p": precio})
 
             ciudad = row.get('ciudad', 'Valencia')
-            unique_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"row_{idx}_{tienda_nombre}_{ciudad}"))
+            id_prod = row.get('id_producto', str(idx))
+            unique_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{id_prod}_{tienda_nombre}_{ciudad}"))
             
             vectors_to_upload.append(f"{nombre_estandar} {row.get('categoria', '')}")
             ids_to_upload.append(unique_uuid)

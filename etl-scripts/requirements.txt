@@ -7,3 +7,4 @@ pymysql
 qdrant-client       # Para conectar con la DB vectorial
 sentence-transformers # Para convertir texto a números (vectores)
 cryptography
+playwright

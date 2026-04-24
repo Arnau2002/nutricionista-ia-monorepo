@@ -1,6 +1,3 @@
-# Versión del archivo de Docker Compose
-version: '3.8'
-
 # Aquí definimos todos los servicios (contenedores) que necesita la aplicación
 services:
 
@@ -49,6 +46,11 @@ services:
     volumes:
       # MAPEAMOS la carpeta LOCAL ./export a la carpeta /app/export dentro del contenedor
       - ./export:/app/export
+      # MAPEAMOS el orquestador principal para que el contenedor pueda ejecutarlo
+      - ./etl_pro_master.py:/app/etl_pro_master.py
+    
+    # Este es el comando que ejecutará Docker automáticamente al levantar el contenedor
+    command: ["python", "-u", "/app/etl_pro_master.py", "all", "--daemon"]
     env_file:
       - .env
 
@@ -92,6 +94,8 @@ services:
       - .env
     environment:
       - POLLINATIONS_API_KEY=${POLLINATIONS_API_KEY}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+      - MAP_ID=${MAP_ID}
     depends_on:
       - backend-logica
 

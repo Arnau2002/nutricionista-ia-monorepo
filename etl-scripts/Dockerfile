@@ -7,6 +7,7 @@ WORKDIR /app
 # 3. Copiar e instalar las librerías (como Pandas, Requests, etc.)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN playwright install --with-deps chromium
 
 # 4. Copiar el resto de tus scripts de scraping y limpieza
 COPY . .

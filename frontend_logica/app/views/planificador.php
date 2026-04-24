@@ -1525,13 +1525,26 @@
                             const request = {
                                 location: userLoc,
                                 radius: '15000', // 15km
-                                query: `supermercado ${brand}`
+                                query: brand === 'Dia' ? 'Supermercados DIA' : `supermercado ${brand}`
                             };
                             placesService.textSearch(request, (results, status) => {
                                 if (status === google.maps.places.PlacesServiceStatus.OK) {
-                                    resolve(results.map(r => ({
+                                    // Filtro estricto para evitar Dialprix u otros falsos positivos
+                                    const filtrados = results.filter(r => {
+                                        const name = r.name.toLowerCase();
+                                        const brandLower = brand.toLowerCase();
+                                        if (brandLower === 'dia') {
+                                            // No queremos Dialprix
+                                            if (name.includes('dialprix')) return false;
+                                            // Queremos que contenga "dia" como palabra o inicio
+                                            return name === 'dia' || name.includes('supermercados dia') || name.startsWith('dia ') || name.includes(' la plaza de dia');
+                                        }
+                                        return name.includes(brandLower);
+                                    });
+
+                                    resolve(filtrados.map(r => ({
                                         cadena: brand.toLowerCase(),
-                                        nombre: brand,
+                                        nombre: r.name, // Usamos el nombre real de Google para el popup
                                         lat: r.geometry.location.lat(),
                                         lng: r.geometry.location.lng(),
                                         direccion: r.formatted_address || r.name,
