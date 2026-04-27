@@ -31,34 +31,40 @@ def main():
 
     print(f"🌆 Iniciando proceso masivo para: {', '.join([c.capitalize() for c in cities])}")
 
-    # 1. & 2. Scrapear cada ciudad
+    # 1. Refrescar Cookies para todas las ciudades primero (Seguridad Anti-Ban)
+    print("\n--- 🍪 RENOVANDO SESIONES (Anti-Ban) ---")
+    if not run_cmd("python etl-scripts/cookie_fetcher.py"):
+        print("⚠️ Error renovando cookies. El scraping podría fallar o ser bloqueado.")
+        # Podríamos continuar, pero es arriesgado. Dejamos que intente.
+
+    # 2. & 3. Scrapear cada ciudad
     for city in cities:
         print(f"\n--- 🏙️ PROCESANDO: {city.upper()} ---")
         
-        # Scrape Mercadona
+        # Scrape Mercadona (Ahora usa cookies automáticas)
         env_m = {"CIUDAD_MERCADONA": city}
         if not run_cmd("python etl-scripts/MERCADONA/mercadona.py", env=env_m):
             print(f"⚠️ Fallo en Mercadona ({city}), saltando a la siguiente...")
             continue
 
-        # Scrape DIA
+        # Scrape DIA (Ahora usa cookies automáticas)
         env_d = {"CIUDAD_DIA": city.capitalize()}
         if not run_cmd("python etl-scripts/DIA/dia_unificado.py", env=env_d):
             print(f"⚠️ Fallo en DIA ({city}), saltando a la siguiente...")
             continue
 
-    # 3. Limpieza de Datos (Una sola vez para todas las ciudades)
-    print("\n--- 🧹 CONSOLIDANDO TODAS LAS CIUDADES ---")
+    # 4. Limpieza de Datos (Una sola vez para todas las ciudades)
+    print("\n--- 扫 CONSOLIDANDO TODAS LAS CIUDADES ---")
     if not run_cmd("python etl-scripts/clean_data.py"):
         return
 
-    # 4. Carga en Base de Datos Vectorial
+    # 5. Carga en Base de Datos Vectorial (Zero-Downtime)
     print("\n--- 🚀 CARGANDO EN VECTOR DB (QDRANT) ---")
     if not run_cmd("python etl-scripts/load_data.py"):
         return
 
     print(f"\n✅ ¡Proceso finalizado con éxito para: {', '.join([c.capitalize() for c in cities])}!")
-    print("🚀 Ahora puedes usar el Planificador y cambiar de ciudad en el frontal.")
+    print("🚀 La base de datos se ha actualizado sin tiempo de inactividad.")
 
 if __name__ == "__main__":
     main()

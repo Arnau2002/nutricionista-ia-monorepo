@@ -93,11 +93,6 @@
         font-weight: 800;
     }
 
-    [data-theme="light"] .dia-heading {
-        color: #1e3a8a;
-        border-bottom: 2px solid #cbd5e1;
-    }
-
     [data-theme="light"] .ingredientes-meta {
         background: #f1f5f9;
         border-color: #e2e8f0;
@@ -165,17 +160,32 @@
         border-radius: 16px;
     }
 
-    #mapa-wrapper p { color: #94a3b8; }
-    .mapa-leyenda { color: #94a3b8; }
+    #mapa-wrapper p {
+        color: #94a3b8;
+    }
+
+    .mapa-leyenda {
+        color: #94a3b8;
+    }
 
     [data-theme="light"] #mapa-wrapper {
         background: #ffffff;
         border-color: #e2e8f0;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
     }
-    [data-theme="light"] #mapa-wrapper h3 { color: #0f172a; }
-    [data-theme="light"] #mapa-wrapper p { color: #334155; }
-    [data-theme="light"] .mapa-leyenda { color: #1e293b; font-weight: 600; }
+
+    [data-theme="light"] #mapa-wrapper h3 {
+        color: #0f172a;
+    }
+
+    [data-theme="light"] #mapa-wrapper p {
+        color: #334155;
+    }
+
+    [data-theme="light"] .mapa-leyenda {
+        color: #1e293b;
+        font-weight: 600;
+    }
 
     [data-theme="light"] #loader h3 {
         color: #1e293b;
@@ -516,16 +526,41 @@
     }
 
     .winner-banner {
-        background: rgba(16, 185, 129, 0.1);
-        color: #34d399;
-        padding: 20px;
-        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 35px;
         text-align: center;
-        border: 1px solid rgba(16, 185, 129, 0.3);
-        font-size: 1.25em;
-        font-weight: bold;
-        margin-bottom: 24px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 40px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .winner-banner::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+        z-index: -1;
+    }
+
+    .winner-title {
+        font-size: 2.2rem;
+        font-weight: 900;
+        margin-bottom: 10px;
+        letter-spacing: -1px;
+    }
+
+    .winner-savings {
+        font-size: 1.1rem;
+        font-weight: 600;
+        opacity: 0.9;
     }
 
     .ingredientes-meta {
@@ -760,28 +795,181 @@
         visibility: visible;
         opacity: 1;
     }
+
+    /* Estilos para los Marcadores Avanzados */
+    .marker-pin {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: white;
+        border: 2px solid #fff;
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .marker-pin:hover {
+        transform: scale(1.2) translateY(-5px);
+    }
+
+    .marker-pin img {
+        width: 75%;
+        height: 75%;
+        object-fit: contain;
+    }
+
+    .marker-mercadona {
+        border-color: #009432;
+        box-shadow: 0 0 20px rgba(0, 148, 50, 0.5);
+    }
+
+    .marker-dia {
+        border-color: #EA2027;
+        box-shadow: 0 0 20px rgba(234, 32, 39, 0.5);
+    }
+
+    .pulse-effect {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: inherit;
+        opacity: 0.5;
+        animation: pulse 2s infinite;
+        z-index: -1;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+            opacity: 0.5;
+        }
+
+        100% {
+            transform: scale(2.5);
+            opacity: 0;
+        }
+    }
+
+    /* Premium Spinner */
+    .premium-spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid rgba(59, 130, 246, 0.1);
+        border-top: 5px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+    }
+
+    /* Comparison Grid Premium */
+    .comparison-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .store-column {
+        background: rgba(15, 23, 42, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+
+    [data-theme="light"] .store-column {
+        background: #ffffff;
+        border-color: #e2e8f0;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    .store-column:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .store-header {
+        height: 140px;
+        padding: 24px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    [data-theme="light"] .store-header {
+        border-bottom-color: #f1f5f9;
+    }
+
+    .merca-header {
+        background: linear-gradient(180deg, rgba(0, 184, 148, 0.15) 0%, rgba(0, 184, 148, 0.02) 100%);
+        border-top: 5px solid #00b894;
+    }
+
+    .dia-header {
+        background: linear-gradient(180deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.02) 100%);
+        border-top: 5px solid #ef4444;
+    }
+
+    .big-price {
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: #fff;
+        margin: 10px 0;
+        letter-spacing: -1px;
+    }
+
+    [data-theme="light"] .big-price {
+        color: #0f172a;
+    }
+
+    .products-list {
+        flex: 1;
+        padding: 15px 25px;
+    }
+
+    @media (max-width: 850px) {
+        .comparison-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
 <div class="planificador-container">
-    <div class="chef-header">
-        <h2>👨‍🍳 Planificador de Menús Inteligente</h2>
-        <p>Dime qué te apetece comer esta semana y la IA creará tu menú óptimo.</p>
+    <div class="chef-header" style="display: flex; align-items: center; gap: 20px; margin-bottom: 40px;">
+        <div style="background: white; border-radius: 50%; padding: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <img src="/public/img/logo.png" alt="Logo" style="width: 60px; height: 60px; border-radius: 50%;">
+        </div>
+        <div style="text-align: left;">
+            <h2 style="margin: 0; font-size: 2.2rem; font-weight: 900;">El Chef IA</h2>
+            <p style="margin: 5px 0 0 0; opacity: 0.8;">Tu nutrición inteligente, optimizada por presupuesto.</p>
+        </div>
     </div>
 
     <!-- SECCIÓN DE PREFERENCIAS -->
     <div class="config-panel">
-        <p class="config-panel-title">⚙️ Personalización del Menú</p>
+        <p class="config-panel-title">⚙️ Personaliza tu Experiencia</p>
         <div class="config-grid">
             <div class="config-item">
-                <label><strong>Personas:</strong></label>
+                <label>Personas</label>
                 <input type="number" id="numPersonasInput" min="1" max="12" value="2">
             </div>
             <div class="config-item">
-                <label><strong>Días:</strong></label>
+                <label>Días</label>
                 <input type="number" id="numDiasInput" min="1" max="14" value="7">
             </div>
             <div class="config-item">
-                <label><strong>Dieta:</strong></label>
+                <label>Dieta</label>
                 <select id="dietaSelect">
                     <option value="Equilibrada">🥗 Equilibrada</option>
                     <option value="Vegana">🌱 Vegana</option>
@@ -790,7 +978,7 @@
                 </select>
             </div>
             <div class="config-item">
-                <label><strong>Objetivo:</strong></label>
+                <label>Objetivo</label>
                 <select id="objetivoSelect">
                     <option value="Ahorro">💰 Máximo Ahorro</option>
                     <option value="Ganar músculo">💪 Ganar Músculo</option>
@@ -798,7 +986,7 @@
                 </select>
             </div>
             <div class="config-item">
-                <label><strong>Ciudad:</strong></label>
+                <label>Ciudad</label>
                 <select id="ciudadSelect" onchange="cambiarCiudadMapa(this.value)">
                     <option value="Valencia" selected>🏙️ Valencia</option>
                     <option value="Madrid">🏙️ Madrid</option>
@@ -809,111 +997,131 @@
                     <option value="Bilbao">🏙️ Bilbao</option>
                 </select>
             </div>
+        </div>
+        <div class="config-grid" style="margin-top: 20px;">
             <div class="config-item" style="grid-column: span 2;">
-                <label><strong>Alergias (separadas por comas):</strong></label>
-                <input type="text" id="alergiasInput" placeholder="Ej: Nueces, Marisco, Lactosa">
+                <label>Alergias o Restricciones</label>
+                <input type="text" id="alergiasInput" placeholder="Ej: Nueces, Marisco, Lactosa...">
             </div>
-            <div class="config-item" style="grid-column: span 2;">
-                <label><strong>Ingredientes que ya tienes:</strong></label>
-                <input type="text" id="despensaInput" placeholder="Ej: sal, aceite, arroz">
+            <div class="config-item" style="grid-column: span 3;">
+                <label>Ingredientes que ya tienes (Despensa)</label>
+                <input type="text" id="despensaInput" placeholder="Ej: sal, aceite, arroz, especias...">
             </div>
         </div>
     </div>
 
     <div class="chef-input-group">
-        <input type="text" id="prompt-chef" class="chef-input" placeholder="Ej: Quiero cenar vegetariano 3 días..."
-            onkeypress="manejarEnter(event)">
+        <input type="text" id="prompt-chef" class="chef-input"
+            placeholder="Ej: Quiero una dieta mediterránea para esta semana..." onkeypress="manejarEnter(event)">
         <button class="btn-chef" onclick="pedirMenu()">Planificar ✨</button>
     </div>
 
-    <div id="loader">
-        <div class="spinner"></div>
-        <h3 style="color: #f8fafc; margin-top: 10px;">El Chef está pensando...</h3>
-        <p style="color: #94a3b8;">Inventando recetas y buscando precios (puede tardar unos 10-15 segundos).</p>
+    <!-- LOADING STATE -->
+    <div id="loader" style="display: none;">
+        <div class="premium-spinner"></div>
+        <h3 style="font-weight: 800; margin-bottom: 8px;">Cocinando tu menú...</h3>
+        <p style="color: var(--muted);">Buscando las mejores recetas y calculando nutrición.</p>
     </div>
 
-    <div id="resultados">
-        <div style="text-align: center; margin-bottom: 35px;">
-            <button id="btn-guardar" class="btn-guardar" onclick="guardarMenuEnHistorial()">💾 Guardar Menú y Lista en
-                Historial</button>
-            <span id="mensaje-guardado"
-                style="color: #10b981; font-weight: 700; font-size: 1.1em; display: none; margin-left: 15px;">✅
-                ¡Guardado en tu Dashboard!</span>
+    <div id="resultados" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <h3 style="margin: 0; font-weight: 900; font-size: 1.8rem;">🍽️ Tu Menú Semanal</h3>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span id="mensaje-guardado" style="color: #10b981; font-weight: 700; display: none;">✅ ¡Guardado!</span>
+                <button id="btn-guardar" class="btn btn-pri" style="border-radius: 12px; padding: 12px 24px;"
+                    onclick="guardarMenuEnHistorial()">💾 Guardar Todo</button>
+            </div>
         </div>
 
-        <h3 class="seccion-titulo"
-            style="margin-bottom: 20px; font-size: 1.5em; display:flex; align-items:center; gap: 8px;">🍽️ Tu Menú
-            Personalizado</h3>
-        <div id="menu-container" class="menu-grid"></div>
-        <div id="ingredientes-meta" class="ingredientes-meta" style="display:none;"></div>
+        <div id="menu-container"></div>
+        <div id="ingredientes-meta" class="dia-grupo" style="display:none; margin-top: 20px;"></div>
 
-        <h3 class="seccion-titulo"
-            style="margin-bottom: 20px; margin-top: 40px; font-size: 1.5em; display:flex; align-items:center; gap: 8px;">
-            🛒 Tu Lista de la Compra</h3>
+        <h3 style="margin: 40px 0 20px; font-weight: 900; font-size: 1.8rem;">🛒 Lista de la Compra</h3>
 
-        <div id="checklist-wrapper" class="ingredientes-meta" style="display:none; margin-top: 25px;">
-            <h4 style="margin-bottom: 15px;">Selecciona los ingredientes que quieres comprar</h4>
+        <div id="checklist-wrapper" class="dia-grupo" style="display:none;">
+            <p style="color: var(--muted); margin-bottom: 20px; font-weight: 600;">Desmarca lo que ya tengas en casa:
+            </p>
             <div id="checklist-grid" class="checklist-grid"></div>
-            <div class="checklist-actions">
-                <span class="checklist-count">Seleccionados: <span id="checklist-count">0</span></span>
-                <button type="button" class="btn-checklist" onclick="seleccionarTodoChecklist()">Seleccionar
-                    todo</button>
-                <button type="button" class="btn-checklist" onclick="limpiarChecklist()">Quitar todo</button>
-                <button type="button" id="btn-buscar-checklist" class="btn-buscar" onclick="buscarConChecklist()"
-                    disabled>Buscar precios selecionados</button>
+
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border);">
+                <div style="font-weight: 700; color: var(--text);">
+                    <span id="checklist-count">0</span> ingredientes seleccionados
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-muted" onclick="seleccionarTodoChecklist()"
+                        style="font-size: 0.8rem;">Todos</button>
+                    <button class="btn btn-muted" onclick="limpiarChecklist()"
+                        style="font-size: 0.8rem;">Ninguno</button>
+                    <button id="btn-buscar-checklist" class="btn btn-pri" onclick="buscarConChecklist()"
+                        disabled>Comparar Precios 🚀</button>
+                </div>
             </div>
-            <div id="checklist-excluidos" style="margin-top:15px; color:#34d399; font-weight: 500;"></div>
-        </div>
-
-        <div id="loader-busqueda">
-            <div class="spinner"></div>
-            <p style="margin:10px 0 0; font-size: 1.1em; color: #f8fafc;">Buscando precios en los supermercados...</p>
-        </div>
-
-        <div id="comparativa-wrapper" style="display:none; margin-top: 30px;">
-            <div id="winner-banner" class="winner-banner"></div>
-
-            <div id="comparison-grid"
-                style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; margin-top: 20px;">
-                <!-- Mercadona Header -->
-                <div class="comp-header comp-header-m">
-                    <h3 style="color: #00b894; margin: 0; padding-bottom: 8px; font-size: 1.4em;">Mercadona</h3>
-                    <div id="m-price" class="price-tag">0.00 €</div>
-                </div>
-                <!-- Dia Header -->
-                <div class="comp-header comp-header-d">
-                    <h3 style="color: #ff7675; margin: 0; padding-bottom: 8px; font-size: 1.4em;">Dia</h3>
-                    <div id="d-price" class="price-tag">0.00 €</div>
-                </div>
-
-                <!-- Filas de productos -->
-                <div id="list-container"
-                    style="grid-column: 1 / span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; background: rgba(15,23,42,0.4); padding: 15px; border-left: 1px solid #334155; border-right: 1px solid #334155;">
-                </div>
-
-                <!-- Footers (No encontrados) -->
-                <div id="m-missing"
-                    style="background: rgba(0, 184, 148, 0.05); padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #334155; border-top: none; color: #fca5a5; font-size: 0.95em;">
-                </div>
-                <div id="d-missing"
-                    style="background: rgba(255, 118, 117, 0.05); padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #334155; border-top: none; color: #fca5a5; font-size: 0.95em;">
-                </div>
+            <div id="checklist-excluidos"
+                style="margin-top:20px; color:#10b981; font-weight: 600; font-size: 0.9em; padding: 10px; background: rgba(16, 185, 129, 0.05); border-radius: 8px; display: none;">
             </div>
         </div>
 
+        <div id="loader-busqueda" style="display: none;">
+            <div class="premium-spinner"></div>
+            <p style="color: var(--muted); font-weight: 600;">Escaneando estanterías de Mercadona y Dia...</p>
+        </div>
+
+        <div id="comparativa-wrapper" style="display: none; margin-top: 40px;">
+            <div id="winner-banner"
+                style="padding: 24px; border-radius: 20px; margin-bottom: 30px; text-align: center; font-weight: 800; font-size: 1.2rem; border: 1px solid transparent;">
+            </div>
+
+            <div class="comparison-grid">
+                <!-- MERCADONA -->
+                <div class="store-column">
+                    <div class="store-header merca-header">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                            <img src="/public/img/mercadona.png" style="height: 35px;" alt="Mercadona Logo">
+                        </div>
+                        <div id="m-price" class="big-price">0.00 €</div>
+                        <div id="m-meta" style="font-size: 0.8rem; color: #64748b; font-weight: 700; margin-top: 5px;">
+                        </div>
+                    </div>
+                    <div id="m-list" class="products-list"></div>
+                    <div id="m-missing"
+                        style="padding: 15px; font-size: 0.8rem; color: #ef4444; background: rgba(239, 68, 68, 0.05);">
+                    </div>
+                </div>
+
+                <!-- DIA -->
+                <div class="store-column">
+                    <div class="store-header dia-header">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                            <img src="/public/img/dia.png" style="height: 35px;" alt="Dia Logo">
+                        </div>
+                        <div id="d-price" class="big-price">0.00 €</div>
+                        <div id="d-meta" style="font-size: 0.8rem; color: #64748b; font-weight: 700; margin-top: 5px;">
+                        </div>
+                    </div>
+                    <div id="d-list" class="products-list"></div>
+                    <div id="d-missing"
+                        style="padding: 15px; font-size: 0.8rem; color: #ef4444; background: rgba(239, 68, 68, 0.05);">
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <!-- FIN RESULTADOS -->
 
     <!-- ===== SECCIÓN MAPA: ABAJO DEL TODO Y SIEMPRE VISIBLE ===== -->
     <div id="mapa-wrapper" class="glass-card" style="margin-top: 45px; padding: 25px; position: relative;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-            <h3 class="seccion-titulo" style="margin: 0; font-size: 1.4em; display:flex; align-items:center; gap: 8px;">🗺️ Supermercados Cerca de Ti</h3>
-            <button id="btn-smart-search" class="btn-buscar" style="margin: 0; padding: 8px 16px; font-size: 0.9em;" onclick="sugerirTiendasCercanas()">
+        <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+            <h3 class="seccion-titulo" style="margin: 0; font-size: 1.4em; display:flex; align-items:center; gap: 8px;">
+                🗺️ Supermercados Cerca de Ti</h3>
+            <button id="btn-smart-search" class="btn-buscar" style="margin: 0; padding: 8px 16px; font-size: 0.9em;"
+                onclick="sugerirTiendasCercanas()">
                 ✨ Sugerir por mi ubicación real
             </button>
         </div>
         <p class="mapa-desc" style="margin-bottom: 20px; line-height: 1.6;">
-            Encuentra tiendas de Mercadona y Dia cerca de tu zona. Haz clic en un marcador para ver precios (si ya has buscado precios antes) o trazar una ruta.
+            Encuentra tiendas de Mercadona y Dia cerca de tu zona. Haz clic en un marcador para ver precios (si ya has
+            buscado precios antes) o trazar una ruta.
         </p>
 
         <div style="position: relative;">
@@ -924,10 +1132,14 @@
             <div id="info-ruta" style="position: absolute; top: 15px; right: 15px; z-index: 100; display: none;"></div>
         </div>
 
-        <div id="mapa-leyenda" class="mapa-leyenda" style="margin-top: 15px; display: flex; gap: 20px; justify-content: center; font-size: 0.85em;">
-            <span style="display: flex; align-items: center; gap: 6px;"><span style="background:#009432; width:12px; height:12px; border-radius:50%;"></span> Mercadona</span>
-            <span style="display: flex; align-items: center; gap: 6px;"><span style="background:#EA2027; width:12px; height:12px; border-radius:50%;"></span> Dia</span>
-            <span style="display: flex; align-items: center; gap: 6px;"><span style="background:#3b82f6; width:12px; height:12px; border-radius:50%;"></span> Tu ubicación</span>
+        <div id="mapa-leyenda" class="mapa-leyenda"
+            style="margin-top: 15px; display: flex; gap: 20px; justify-content: center; font-size: 0.85em;">
+            <span style="display: flex; align-items: center; gap: 6px;"><span
+                    style="background:#009432; width:12px; height:12px; border-radius:50%;"></span> Mercadona</span>
+            <span style="display: flex; align-items: center; gap: 6px;"><span
+                    style="background:#EA2027; width:12px; height:12px; border-radius:50%;"></span> Dia</span>
+            <span style="display: flex; align-items: center; gap: 6px;"><span
+                    style="background:#3b82f6; width:12px; height:12px; border-radius:50%;"></span> Tu ubicación</span>
         </div>
     </div>
     <!-- ===== FIN MAPA ===== -->
@@ -1132,9 +1344,12 @@
             `;
         }).join('');
 
-        excluidosDiv.innerHTML = excluidos.length > 0
-            ? `<strong>✅ Excluidos por despensa:</strong> ${excluidos.join(', ')}`
-            : '';
+        if (excluidos && excluidos.length > 0) {
+            excluidosDiv.innerHTML = `<strong>✅ Excluidos por estar en tu despensa:</strong> ${excluidos.join(', ')}`;
+            excluidosDiv.style.display = 'block';
+        } else {
+            excluidosDiv.style.display = 'none';
+        }
 
         actualizarContadorChecklist();
     }
@@ -1227,6 +1442,12 @@
 
     function renderizarComparativa(comp, ciudad) {
         const banner = document.getElementById('winner-banner');
+        const mList = document.getElementById('m-list');
+        const dList = document.getElementById('d-list');
+
+        // Limpiar listas anteriores
+        if (mList) mList.innerHTML = "";
+        if (dList) dList.innerHTML = "";
 
         let warningHtml = "";
         if (!comp.comparativa_completa) {
@@ -1256,68 +1477,55 @@
             savingsText += `<div style="background: rgba(255,255,255,0.5); padding: 8px; border-radius: 6px; margin-top: 10px; font-size: 0.85em; color: #111; line-height: 1.3;">💡 <strong>Info:</strong> ${comp.mensaje_ahorro}</div>`;
         }
 
-        banner.innerHTML = `
-        ${warningHtml}
-        <div style="font-size: 1.3em;">🏆 Supermercado recomendado: <strong>${comp.mejor_supermercado}</strong></div>
-        <div style="font-size: 0.9em; font-weight: normal; margin-top: 5px;">
-            ${savingsText}
-        </div>
-        `;
+        const isDiaWinner = comp.mejor_supermercado === 'Dia';
+        const colorAccent = isDiaWinner ? '#ef4444' : '#00b894';
+        const bgGradient = isDiaWinner
+            ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)'
+            : 'linear-gradient(135deg, rgba(0, 184, 148, 0.1) 0%, rgba(0, 184, 148, 0.05) 100%)';
 
-        banner.style.background = (comp.mejor_supermercado === 'Dia') ? '#fadbd8' : '#d4edda';
-        banner.style.color = (comp.mejor_supermercado === 'Dia') ? '#721c24' : '#155724';
-        banner.style.borderColor = (comp.mejor_supermercado === 'Dia') ? '#f5c6cb' : '#c3e6cb';
+        banner.innerHTML = `
+            ${warningHtml}
+            <div class="winner-title" style="color: ${colorAccent};">
+                <span style="font-size: 1.5em; display: block; margin-bottom: 10px;">🏆</span>
+                Mejor opción: ${comp.mejor_supermercado}
+            </div>
+            <div class="winner-savings">
+                ${savingsText}
+            </div>
+        `;
+        banner.className = "winner-banner";
+        banner.style.background = bgGradient;
+        banner.style.border = `1px solid ${colorAccent}44`;
+        banner.style.color = "#fff"; // Default text color for dark mode
+
+        // Adjust for light mode if needed (the CSS handles [data-theme="light"] usually, 
+        // but since we are setting inline styles for the gradient, we might need to be careful)
+        if (document.documentElement.getAttribute('data-theme') === 'light') {
+            banner.style.color = '#1e293b';
+        }
 
         // Poner Totales
-        document.getElementById('m-price').innerHTML = `
-        <div style="font-weight: bold;">${comp.cesta_mercadona.total.toFixed(2)} €</div>
-        <div style="font-size: 0.5em; color: #0984e3; display: flex; align-items: center; justify-content: center; gap: 4px;">
-            <span>⚖️ Coste Proporcional: ${comp.cesta_mercadona.total_normalizado.toFixed(2)}€</span>
-            <span class="info-tooltip">ⓘ
-                <span class="tooltip-text">El <b>Coste Proporcional</b> calcula matemáticamente lo que cuestan los gramos exactos que vas a consumir en tu menú. Sirve para comparar el precio real, ignorando si el supermercado te obliga a comprar envases de 5Kg o te permite comprar a granel.</span>
-            </span>
-        </div>
-        `;
-        document.getElementById('d-price').innerHTML = `
-        <div style="font-weight: bold;">${comp.cesta_dia.total.toFixed(2)} €</div>
-        <div style="font-size: 0.5em; color: #0984e3; display: flex; align-items: center; justify-content: center; gap: 4px;">
-            <span>⚖️ Coste Proporcional: ${comp.cesta_dia.total_normalizado.toFixed(2)}€</span>
-            <span class="info-tooltip">ⓘ
-                <span class="tooltip-text">El <b>Coste Proporcional</b> calcula matemáticamente lo que cuestan los gramos exactos que vas a consumir en tu menú. Sirve para comparar el precio real, ignorando si el supermercado te obliga a comprar envases de 5Kg o te permite comprar a granel.</span>
-            </span>
-        </div>
-        `;
+        document.getElementById('m-price').innerHTML = `${comp.cesta_mercadona.total.toFixed(2)} €`;
+        document.getElementById('m-meta').innerHTML = `⚖️ Proporcional: ${comp.cesta_mercadona.total_normalizado.toFixed(2)}€`;
 
-        // Renderizar Filas Alineadas
-        const listContainer = document.getElementById('list-container');
-        listContainer.innerHTML = "";
+        document.getElementById('d-price').innerHTML = `${comp.cesta_dia.total.toFixed(2)} €`;
+        document.getElementById('d-meta').innerHTML = `⚖️ Proporcional: ${comp.cesta_dia.total_normalizado.toFixed(2)}€`;
 
+        // Renderizar Filas
         if (comp.filas && comp.filas.length > 0) {
             comp.filas.forEach(fila => {
                 const isMixM = fila.recomendado_mixto === 'Mercadona';
                 const isMixD = fila.recomendado_mixto === 'Dia';
 
-                // Mercadona Cell
                 const divM = document.createElement('div');
-                divM.style.background = isMixM ? "#e8f8f5" : "#f4fbf7"; // Highlight if mixed choice
-                divM.style.padding = "0 20px 12px 20px";
-                divM.style.borderLeft = "1px solid #ddd";
-                divM.style.borderRight = "1px solid #ddd";
                 divM.innerHTML = crearHtmlElemento(fila.mercadona, 'Mercadona', isMixM);
-
-                // Dia Cell
                 const divD = document.createElement('div');
-                divD.style.background = isMixD ? "#fdf2e9" : "#fff5f6"; // Highlight if mixed choice
-                divD.style.padding = "0 20px 12px 20px";
-                divD.style.borderLeft = "1px solid #ddd";
-                divD.style.borderRight = "1px solid #ddd";
                 divD.innerHTML = crearHtmlElemento(fila.dia, 'Dia', isMixD);
 
-                listContainer.appendChild(divM);
-                listContainer.appendChild(divD);
+                if (mList) mList.appendChild(divM);
+                if (dList) dList.appendChild(divD);
             });
         }
-
         // Missing Footers
         const mMiss = comp.cesta_mercadona.productos_no_encontrados || [];
         const dMiss = comp.cesta_dia.productos_no_encontrados || [];
@@ -1331,41 +1539,48 @@
     function crearHtmlElemento(p, tienda, isMix = false) {
         if (!p) {
             return `
-        <div class="prod-item" style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; color: #999; font-style: italic; height: 100%;">
-            <div style="width: 50px; height: 50px; background: #f9f9f9; border: 1px dashed #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.2em;">❓</div>
-            <div style="flex: 1;">No disponible en ${tienda}</div>
-        </div>`;
+            <div class="prod-item" style="opacity: 0.5; filter: grayscale(1); padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 45px; height: 45px; background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">❓</div>
+                    <div style="font-size: 0.9rem;">No disponible en ${tienda}</div>
+                </div>
+            </div>`;
         }
 
         const imgUrl = (p.imagen && p.imagen !== '')
             ? p.imagen
             : 'https://cdn-icons-png.flaticon.com/512/1147/1147931.png';
 
-        const badgeHtml = isMix ? '<div style="font-size: 0.7em; background: #8e44ad; color: white; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 3px; font-weight: bold;">⭐ Lo más barato</div>' : '';
+        const badgeHtml = isMix ? '<div style="font-size: 0.7rem; background: #6366f1; color: white; padding: 2px 8px; border-radius: 6px; display: inline-block; margin-bottom: 5px; font-weight: 800;">MÁS BARATO ✨</div>' : '';
 
         const multiHtml = (p.multiplicador && p.multiplicador > 1)
-            ? `<span style="color:#e67e22; font-weight:900; font-size:1.15em; margin-right:4px;">${p.multiplicador}x</span>`
+            ? `<span style="color:#ef4444; font-weight:900; font-size:1.1rem; margin-right:4px;">${p.multiplicador}x</span>`
             : '';
 
         const precioTotal = (p.multiplicador && p.multiplicador > 1) ? (p.precio * p.multiplicador).toFixed(2) : p.precio.toFixed(2);
-        const precioUnitarioMeta = (p.multiplicador && p.multiplicador > 1) ? ` <span style="font-size:0.85em; color:#999; margin-left:4px; font-weight:normal;">(${p.precio.toFixed(2)}€/ud)</span>` : '';
+        const precioUnitarioMeta = (p.multiplicador && p.multiplicador > 1) ? ` <span style="font-size:0.8rem; opacity: 0.6; margin-left:4px; font-weight:normal;">(${p.precio.toFixed(2)}€/ud)</span>` : '';
 
         return `
-    <div class="prod-item" style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; height: 100%;">
-        <img src="${imgUrl}" alt="${p.nombre}" 
-             style="width: 50px; height: 50px; object-fit: contain; border-radius: 4px; border: 1px solid #ddd; background: white;">
-        
-        <div style="flex: 1;">
-            ${badgeHtml}
-            <span class="prod-name" style="display: block; font-weight: bold; font-size: 0.95em; color: #000; line-height:1.2;">${multiHtml}${p.nombre}</span>
-            <span class="prod-meta" style="color: #666; font-size: 0.85em; display: flex; justify-content: space-between;">
-                <span style="${p.es_formato_grande ? 'color: #d35400; font-weight: bold;' : 'font-weight: bold;'}">${precioTotal}€${precioUnitarioMeta}</span>
-                <span style="color: #0984e3; font-weight: bold;">${p.precio_ref > 0 ? p.precio_ref.toFixed(2) + '€/' + p.unidad : ''}</span>
-            </span>
-            ${p.es_formato_grande ? '<div style="font-size: 0.7em; color: #d35400; font-weight: bold; margin-top: 2px;">⚠️ Formato Ahorro</div>' : ''}
-        </div>
-    </div>
-    `;
+        <div class="prod-item" style="height: 140px; padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s; display: flex; align-items: center;">
+            <div style="display: flex; gap: 15px; align-items: center; width: 100%;">
+                <div style="position: relative; width: 60px; height: 60px; flex-shrink: 0; background: white; border-radius: 12px; overflow: hidden; padding: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                    <img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: contain;">
+                </div>
+                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; height: 110px;">
+                    <div style="height: 20px;">${badgeHtml}</div>
+                    <div style="font-weight: 700; font-size: 0.95rem; color: var(--text); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-top: 2px; min-height: 2.4em;">
+                        ${multiHtml}${p.nombre}
+                    </div>
+                    <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: baseline;">
+                        <span style="font-size: 1.15rem; font-weight: 900; color: #10b981;">${precioTotal}€${precioUnitarioMeta}</span>
+                        <span style="font-size: 0.75rem; color: #6366f1; font-weight: 700; opacity: 0.8;">⚖️ ${p.precio_ref > 0 ? p.precio_ref.toFixed(2) + '€/' + p.unidad : ''}</span>
+                    </div>
+                    <div style="height: 15px; margin-top: 4px;">
+                        ${p.es_formato_grande ? '<span style="font-size: 0.7rem; color: #f59e0b; font-weight: 800;">⚠️ FORMATO AHORRO</span>' : ''}
+                    </div>
+                </div>
+            </div>
+        </div>`;
     }
 
     async function guardarMenuEnHistorial() {
@@ -1379,6 +1594,8 @@
             ahorro_total: currentMenuData.comparativa.ahorro_total,
             cesta_mercadona: currentMenuData.comparativa.cesta_mercadona,
             cesta_dia: currentMenuData.comparativa.cesta_dia,
+            cesta_mixta: currentMenuData.comparativa.cesta_mixta, // Añadido
+            filas: currentMenuData.comparativa.filas,           // Añadido
             menu_planificado: currentMenuData.menu
         };
 
@@ -1411,66 +1628,6 @@
         }
     }
 </script>
-
-<!-- Estilos para los Marcadores Avanzados -->
-<style>
-    .marker-pin {
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        background: white;
-        border: 2px solid #fff;
-        box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .marker-pin:hover {
-        transform: scale(1.2) translateY(-5px);
-    }
-
-    .marker-pin img {
-        width: 75%;
-        height: 75%;
-        object-fit: contain;
-    }
-
-    .marker-mercadona {
-        border-color: #009432;
-        box-shadow: 0 0 20px rgba(0, 148, 50, 0.5);
-    }
-
-    .marker-dia {
-        border-color: #EA2027;
-        box-shadow: 0 0 20px rgba(234, 32, 39, 0.5);
-    }
-
-    .pulse-effect {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-        background: inherit;
-        opacity: 0.5;
-        animation: pulse 2s infinite;
-        z-index: -1;
-    }
-
-    @keyframes pulse {
-        0% {
-            transform: scale(1);
-            opacity: 0.5;
-        }
-
-        100% {
-            transform: scale(2.5);
-            opacity: 0;
-        }
-    }
-</style>
 
 <!-- Google Maps SDK v3.56+ con librerías necesarias -->
 <script
@@ -1516,7 +1673,11 @@
                 const userLoc = { lat: uLat, lng: uLng };
 
                 try {
-                    if (!googleMap) inicializarMapa(null, null);
+                    const pM = currentMenuData?.comparativa?.cesta_mercadona?.total || null;
+                    const pD = currentMenuData?.comparativa?.cesta_dia?.total || null;
+                    const ciudad = document.getElementById('ciudadSelect').value;
+
+                    if (!googleMap) inicializarMapa(pM, pD);
 
                     const placesService = new google.maps.places.PlacesService(googleMap);
 
@@ -1524,27 +1685,24 @@
                         return new Promise((resolve) => {
                             const request = {
                                 location: userLoc,
-                                radius: '15000', // 15km
-                                query: brand === 'Dia' ? 'Supermercados DIA' : `supermercado ${brand}`
+                                radius: 20000, // 20km
+                                query: brand // Búsqueda más amplia
                             };
                             placesService.textSearch(request, (results, status) => {
                                 if (status === google.maps.places.PlacesServiceStatus.OK) {
-                                    // Filtro estricto para evitar Dialprix u otros falsos positivos
                                     const filtrados = results.filter(r => {
                                         const name = r.name.toLowerCase();
                                         const brandLower = brand.toLowerCase();
                                         if (brandLower === 'dia') {
-                                            // No queremos Dialprix
+                                            // Filtro para DIA: evitar Dialprix, permitir variaciones de nombre
                                             if (name.includes('dialprix')) return false;
-                                            // Queremos que contenga "dia" como palabra o inicio
-                                            return name === 'dia' || name.includes('supermercados dia') || name.startsWith('dia ') || name.includes(' la plaza de dia');
+                                            return name.includes('dia') || name.includes('la plaza');
                                         }
                                         return name.includes(brandLower);
                                     });
-
                                     resolve(filtrados.map(r => ({
                                         cadena: brand.toLowerCase(),
-                                        nombre: r.name, // Usamos el nombre real de Google para el popup
+                                        nombre: r.name,
                                         lat: r.geometry.location.lat(),
                                         lng: r.geometry.location.lng(),
                                         direccion: r.formatted_address || r.name,
@@ -1560,7 +1718,17 @@
                     const [mRes, dRes] = await Promise.all([buscarEnGoogle('Mercadona'), buscarEnGoogle('Dia')]);
                     const todas = [...mRes, ...dRes];
 
-                    if (todas.length === 0) throw new Error("Google no ha encontrado tiendas cerca de tu posición.");
+                    // Si no encuentra nada con query específico, intentamos algo más genérico
+                    if (todas.length === 0) {
+                        const [mResGen, dResGen] = await Promise.all([buscarEnGoogle('Mercadona'), buscarEnGoogle('DIA')]);
+                        todas.push(...mResGen, ...dResGen);
+                    }
+
+                    if (todas.length === 0) {
+                        alert("Aviso: Google Maps no ha encontrado tiendas de Mercadona o Dia en un radio de 20km. Usaremos ubicaciones predefinidas.");
+                        finalizarCargaMapa(pM, pD, ciudad);
+                        return;
+                    }
 
                     // Calcular distancias reales y ordenar
                     todas.forEach(t => {
@@ -1574,10 +1742,7 @@
                     if (foundM) masCercanos.push(foundM);
                     if (foundD) masCercanos.push(foundD);
 
-                    let pM = currentMenuData?.comparativa?.cesta_mercadona?.total || null;
-                    let pD = currentMenuData?.comparativa?.cesta_dia?.total || null;
-
-                    finalizarCargaMapa(pM, pD, 'Valencia', masCercanos);
+                    finalizarCargaMapa(pM, pD, ciudad, masCercanos);
 
                     // Centrar en usuario y tiendas
                     const bounds = new google.maps.LatLngBounds();
@@ -1600,6 +1765,7 @@
                     });
 
                 } catch (error) {
+                    console.error("Error en smart search:", error);
                     alert("Aviso: " + error.message);
                 } finally {
                     btn.innerHTML = originalText;
@@ -1631,7 +1797,7 @@
             googleMap = new google.maps.Map(document.getElementById('mapa-supermercados'), {
                 center: coordsCentro,
                 zoom: 13,
-                mapId: '<?php echo getenv("MAP_ID"); ?>', // MAP ID Premium para Advanced Markers
+                mapId: '8eceaba97ef31046', // MAP ID Premium para Advanced Markers
                 disableDefaultUI: false,
                 zoomControl: true,
                 styles: [
@@ -1679,10 +1845,16 @@
         googleMarkers = [];
         if (directionsRenderer) directionsRenderer.setDirections({ routes: [] });
 
-        const tiendas = listaTiendasCustom || [
-            { cadena: 'mercadona', nombre: 'Mercadona Local', lat: CENTROS_CIUDAD[ciudadSelection].lat + 0.005, lng: CENTROS_CIUDAD[ciudadSelection].lng + 0.005, direccion: 'Cerca del centro' },
-            { cadena: 'dia', nombre: 'Día Local', lat: CENTROS_CIUDAD[ciudadSelection].lat - 0.005, lng: CENTROS_CIUDAD[ciudadSelection].lng - 0.005, direccion: 'Cerca del centro' }
-        ];
+        let tiendas = [];
+        if (listaTiendasCustom && listaTiendasCustom.length > 0) {
+            tiendas = listaTiendasCustom;
+        } else {
+            const centro = CENTROS_CIUDAD[ciudadSelection] || CENTROS_CIUDAD['Valencia'];
+            tiendas = [
+                { cadena: 'mercadona', nombre: 'Mercadona Local', lat: centro.lat + 0.005, lng: centro.lng + 0.005, direccion: 'Cerca del centro' },
+                { cadena: 'dia', nombre: 'Día Local', lat: centro.lat - 0.005, lng: centro.lng - 0.005, direccion: 'Cerca del centro' }
+            ];
+        }
 
         tiendas.forEach(store => {
             // Crear elemento HTML para el marcador avanzado

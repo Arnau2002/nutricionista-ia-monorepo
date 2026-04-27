@@ -136,6 +136,16 @@ footer {
   margin-top: 40px;
 }
 
+/* Evitar recuadros dobles en vistas premium */
+.card.dashboard, 
+.card.planificador {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  backdrop-filter: none !important;
+}
+
 /* Títulos */
 h1 {
   margin: 0;

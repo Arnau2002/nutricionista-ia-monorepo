@@ -93,7 +93,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ETL Master para Nutricionista IA")
     parser.add_argument("cities", nargs="*", default=["all"], help="Ciudades a procesar o 'all'")
     parser.add_argument("--daemon", action="store_true", help="Ejecutar en modo daemon (bucle infinito)")
-    parser.add_argument("--interval", type=int, default=24, help="Intervalo en horas para el modo daemon")
+    parser.add_argument("--interval", type=float, default=24, help="Intervalo en horas para el modo daemon")
 
     args = parser.parse_args()
 

@@ -2,6 +2,10 @@
 FROM python:3.11-slim
 
 # 2. Establecer el directorio de trabajo
+# Establecer zona horaria de España
+ENV TZ=Europe/Madrid
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 WORKDIR /app
 
 # 3. Copiar e instalar las librerías (como Pandas, Requests, etc.)

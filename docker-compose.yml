@@ -10,7 +10,7 @@ services:
     environment:
       # Define las credenciales para la base de datos
       # !! CAMBIA ESTA CONTRASEÑA por una segura
-      MYSQL_ROOT_PASSWORD: password_segura 
+      MYSQL_ROOT_PASSWORD: password_segura
       MYSQL_DATABASE: precios_comparados
     ports:
       # Expone el puerto de MySQL a tu máquina local (para que puedas conectarte
@@ -21,51 +21,47 @@ services:
       # aunque apagues y enciendas los contenedores.
       - db_data:/var/lib/mysql
 
-
-
-
   # --- 2. El Servicio de ETL (Scraping y Limpieza) ---
   # Usa el código de tu carpeta 'etl-scripts'
   etl-scripts:
     build:
       # Le dice a Docker que busque un 'Dockerfile' en esta carpeta
-      context: ./etl-scripts 
+      context: ./etl-scripts
     container_name: etl-pipeline
     environment:
       # Pasa las credenciales de la DB al contenedor para que pueda conectarse
       # IMPORTANTE: El 'host' es el nombre del servicio de la DB ('db-tiendas')
-      DB_HOST: db-tiendas 
+      DB_HOST: db-tiendas
       DB_NAME: precios_comparados
       DB_USER: root
       DB_PASS: password_segura # !! USA LA MISMA CONTRASEÑA
       QDRANT_HOST: vector-db
     depends_on:
       # Le dice a Docker que espere a que la BBDD esté lista antes de iniciar este
-      - db-tiendas 
+      - db-tiendas
 
     volumes:
       # MAPEAMOS la carpeta LOCAL ./export a la carpeta /app/export dentro del contenedor
       - ./export:/app/export
       # MAPEAMOS el orquestador principal para que el contenedor pueda ejecutarlo
       - ./etl_pro_master.py:/app/etl_pro_master.py
-    
+      # MAPEAMOS la carpeta de scripts para que los cambios se apliquen al instante
+      - ./etl-scripts:/app/etl-scripts
+
     # Este es el comando que ejecutará Docker automáticamente al levantar el contenedor
-    command: ["python", "-u", "/app/etl_pro_master.py", "all", "--daemon"]
+    command: [ "python", "-u", "/app/etl_pro_master.py", "all", "--daemon", "--interval", "24" ]
     env_file:
       - .env
 
-
-
-
-
-# --- 3. El Servicio de Backend (Lógica de la App y IA) ---
+  # --- 3. El Servicio de Backend (Lógica de la App y IA) ---
   backend-logica:
     build:
       context: ./backend_logica
     container_name: backend-mvp
     ports:
       - "8001:8000"
-    env_file:                     # <--- NUEVO: El pase VIP para el Chef (Lee el .env)
+    env_file:
+      # <--- NUEVO: El pase VIP para el Chef (Lee el .env)
       - ./backend_logica/.env
     environment:
       DB_HOST: db-tiendas
@@ -76,19 +72,17 @@ services:
     depends_on:
       - db-tiendas
     volumes:
-      - ./backend_logica:/app  # Conecta tu carpeta local con la del contenedor
+      - ./backend_logica:/app # Conecta tu carpeta local con la del contenedor
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-
-
-# --- 4. El Servicio de Frontend ---
+  # --- 4. El Servicio de Frontend ---
   frontend-logica:
     build:
       context: ./frontend_logica
     container_name: frontend-mvp
     ports:
       - "3000:80"
-    volumes:                            
+    volumes:
       - ./frontend_logica:/var/www/html
     env_file:
       - .env
@@ -98,9 +92,6 @@ services:
       - MAP_ID=${MAP_ID}
     depends_on:
       - backend-logica
-
-
-
 
   # --- 5. Base de Datos Vectorial (Qdrant) ---
   # Este es el cerebro semántico para búsquedas tipo "comida sana"
@@ -112,11 +103,6 @@ services:
       - "6333:6333" # Puerto para la API y el Dashboard
     volumes:
       - qdrant_data:/qdrant/storage
-
-
-
-
-
 
 # Definimos el 'volumen' que usará la DB para guardar los datos
 volumes:

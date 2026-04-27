@@ -15,7 +15,10 @@
 <body>
   <header class="site-header">
     <div class="wrap">
-      <a class="brand" href="/?r=home"><?= htmlspecialchars($appName) ?></a>
+      <a class="brand" href="/?r=home">
+        <img src="/public/img/logo.png" alt="Logo" style="height: 32px; width: auto; vertical-align: middle; margin-right: 12px; border-radius: 8px; background: white; padding: 2px;">
+        <?= htmlspecialchars($appName) ?>
+      </a>
       <nav class="main-nav">
         <a href="/?r=home">Inicio</a>
         
@@ -39,9 +42,15 @@
       <div class="flash"><?= htmlspecialchars($flash) ?></div>
     <?php endif; ?>
 
-    <div class="card <?= htmlspecialchars($view ?? '') ?>">
-      <?php include __DIR__ . '/' . $view . '.php'; ?>
-    </div>
+    <?php if ($view === 'home'): ?>
+      <div class="view-home">
+        <?php include __DIR__ . '/' . $view . '.php'; ?>
+      </div>
+    <?php else: ?>
+      <div class="card <?= htmlspecialchars($view ?? '') ?>">
+        <?php include __DIR__ . '/' . $view . '.php'; ?>
+      </div>
+    <?php endif; ?>
   </main>
 
   <footer>

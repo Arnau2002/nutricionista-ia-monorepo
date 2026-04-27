@@ -88,13 +88,27 @@ def cargar_datos_qdrant(df):
         print(f"Error config: {e}")
         return
 
+    # --- Lógica de Alias para Zero-Downtime ---
+    ALIAS_NAME = COLLECTION_NAME
+    COL_A = f"{ALIAS_NAME}_v1"
+    COL_B = f"{ALIAS_NAME}_v2"
+    
+    # 1. Determinar cuál es la colección actual para usar la contraria
     try:
-        qdrant.create_collection(
-            collection_name=COLLECTION_NAME,
-            vectors_config=models.VectorParams(size=384, distance=models.Distance.COSINE)
-        )
+        aliases = qdrant.get_aliases()
+        current_col = next((a.collection_name for a in aliases.aliases if a.alias_name == ALIAS_NAME), None)
     except:
-        print(f"Info: La coleccion '{COLLECTION_NAME}' ya existe. Continuando con carga incremental.")
+        current_col = None
+        
+    target_col = COL_B if current_col == COL_A else COL_A
+    
+    print(f"🚀 Iniciando carga en colección secundaria: {target_col}")
+    
+    # 2. Recrear la colección de destino (está vacía mientras la otra sigue viva)
+    qdrant.recreate_collection(
+        collection_name=target_col,
+        vectors_config=models.VectorParams(size=384, distance=models.Distance.COSINE)
+    )
 
     df = df.where(pd.notnull(df), None)
     print(f"Procesando {len(df)} productos...")
@@ -174,7 +188,7 @@ def cargar_datos_qdrant(df):
             fin = min(i + BATCH_SIZE, total)
             try:
                 qdrant.upsert(
-                    collection_name=COLLECTION_NAME,
+                    collection_name=target_col,
                     points=models.Batch(
                         ids=ids_to_upload[i:fin],
                         vectors=embeddings[i:fin],
@@ -185,7 +199,21 @@ def cargar_datos_qdrant(df):
             except Exception as e:
                 print(f"Error lote {i}: {e}")
 
-    print("Carga Finalizada.")
+    # 3. CAMBIO DE ALIAS (Momento de la verdad: atómico e instantáneo)
+    print(f"🔄 Cambiando alias '{ALIAS_NAME}' para que apunte a '{target_col}'...")
+    qdrant.update_collection_aliases(
+        actions=[
+            models.CreateAliasOperation(alias_name=ALIAS_NAME, collection_name=target_col),
+        ]
+    )
+    
+    # 4. Limpieza: Borrar la colección antigua si existía
+    if current_col and current_col != target_col:
+        print(f"🗑️ Borrando colección antigua: {current_col}")
+        try: qdrant.delete_collection(collection_name=current_col)
+        except: pass
+
+    print("Carga Finalizada con Zero-Downtime.")
 
 if __name__ == "__main__":
     df = limpiar_datos()
