@@ -49,7 +49,7 @@ services:
       - ./etl-scripts:/app/etl-scripts
 
     # Este es el comando que ejecutará Docker automáticamente al levantar el contenedor
-    command: [ "python", "-u", "/app/etl_pro_master.py", "all", "--daemon", "--interval", "24" ]
+    command: [ "python", "-u", "/app/etl_pro_master.py", "all", "--daemon", "--interval", "168" ] # 168 horas = 1 semana
     env_file:
       - .env
 

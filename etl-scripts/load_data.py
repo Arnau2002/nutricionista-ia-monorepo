@@ -95,14 +95,24 @@ def cargar_datos_qdrant(df):
     
     # 1. Determinar cuál es la colección actual para usar la contraria
     try:
-        aliases = qdrant.get_aliases()
-        current_col = next((a.collection_name for a in aliases.aliases if a.alias_name == ALIAS_NAME), None)
-    except:
+        # Verificamos qué colecciones existen y cuáles son alias
+        all_collections = [c.name for c in qdrant.get_collections().collections]
+        aliases_response = qdrant.get_aliases()
+        current_alias_info = next((a for a in aliases_response.aliases if a.alias_name == ALIAS_NAME), None)
+        current_col = current_alias_info.collection_name if current_alias_info else None
+        
+        # Si el ALIAS_NAME existe como colección real pero no como alias,
+        # forzamos la carga en COL_A (v1) para luego poder borrar la principal.
+        if ALIAS_NAME in all_collections and not current_alias_info:
+            print(f"[!] Detectada colección '{ALIAS_NAME}' que no es un alias.")
+            current_col = None 
+    except Exception as e:
+        print(f"[!] Error al consultar alias: {e}")
         current_col = None
         
     target_col = COL_B if current_col == COL_A else COL_A
     
-    print(f"🚀 Iniciando carga en colección secundaria: {target_col}")
+    print(f"[*] Iniciando carga en colección secundaria: {target_col}")
     
     # 2. Recrear la colección de destino (está vacía mientras la otra sigue viva)
     qdrant.recreate_collection(
@@ -200,20 +210,50 @@ def cargar_datos_qdrant(df):
                 print(f"Error lote {i}: {e}")
 
     # 3. CAMBIO DE ALIAS (Momento de la verdad: atómico e instantáneo)
-    print(f"🔄 Cambiando alias '{ALIAS_NAME}' para que apunte a '{target_col}'...")
-    qdrant.update_collection_aliases(
-        actions=[
-            models.CreateAliasOperation(alias_name=ALIAS_NAME, collection_name=target_col),
-        ]
-    )
+    print(f"[#] Cambiando alias '{ALIAS_NAME}' para que apunte a '{target_col}'...")
     
-    # 4. Limpieza: Borrar la colección antigua si existía
+    # 3.1 Verificar si ALIAS_NAME es una colección real y borrarla si es necesario
+    try:
+        all_cols = [c.name for c in qdrant.get_collections().collections]
+        if ALIAS_NAME in all_cols:
+            aliases_res = qdrant.get_aliases()
+            is_actually_alias = any(a.alias_name == ALIAS_NAME for a in aliases_res.aliases)
+            if not is_actually_alias:
+                print(f"[-] Borrando colección '{ALIAS_NAME}' para convertirla en alias...")
+                qdrant.delete_collection(collection_name=ALIAS_NAME)
+    except Exception as e:
+        print(f"[!] Error al preparar el cambio de alias: {e}")
+
+    # 3.2 Aplicar el cambio de alias de forma atómica
+    operations = [
+        models.CreateAliasOperation(
+            create_alias=models.CreateAlias(
+                collection_name=target_col,
+                alias_name=ALIAS_NAME
+            )
+        )
+    ]
+    
+    try:
+        # Probamos el método moderno primero
+        if hasattr(qdrant, 'update_collection_aliases'):
+            qdrant.update_collection_aliases(change_aliases_operations=operations)
+        elif hasattr(qdrant, 'update_aliases'):
+            qdrant.update_aliases(change_aliases_operations=operations)
+        else:
+            # Fallback manual si los nombres fallan (muy improbable)
+            print("[!] Intentando cambio de alias por nombre alternativo...")
+            qdrant.update_collection_aliases(actions=operations)
+    except Exception as e:
+        print(f"[ERR] Error crítico al actualizar alias: {e}")
+    
+    # 4. Limpieza: Borrar la colección antigua si existía y no es la nueva
     if current_col and current_col != target_col:
-        print(f"🗑️ Borrando colección antigua: {current_col}")
+        print(f"[-] Borrando colección antigua: {current_col}")
         try: qdrant.delete_collection(collection_name=current_col)
         except: pass
 
-    print("Carga Finalizada con Zero-Downtime.")
+    print(f"[OK] Carga Finalizada. '{ALIAS_NAME}' ahora apunta a '{target_col}'.")
 
 if __name__ == "__main__":
     df = limpiar_datos()

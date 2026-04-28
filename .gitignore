@@ -1,6 +1,9 @@
-export/*.csv
+export/
 node_modules/
 temp_docx/
 tests/
 __pycache__/
 .env
+etl-scripts/cookies.json
+*.ipynb
+.ipynb_checkpoints/

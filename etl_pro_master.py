@@ -4,8 +4,8 @@ import pandas as pd
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# Añadir etl-scripts al path para poder importar
-sys.path.append(os.path.join(os.path.dirname(__file__), 'etl-scripts'))
+# Añadir etl-scripts al path (al principio) para poder importar las versiones actualizadas
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'etl-scripts'))
 
 try:
     from MERCADONA.mercadona import gestion_mercadona
@@ -24,7 +24,7 @@ def run_full_etl(cities):
     print("-" * 50)
 
     # 0. Actualizar Cookies Automáticamente
-    print("🔄 [Paso 0] Refrescando cookies de Dia...")
+    print("[*] [Paso 0] Refrescando cookies de Dia...")
     try:
         cookie_fetcher.run_cookie_fetcher(cities)
     except Exception as e:
@@ -107,7 +107,7 @@ if __name__ == "__main__":
         while True:
             run_full_etl(target_cities)
             next_run = datetime.now() + pd.Timedelta(hours=args.interval)
-            print(f"💤 Durmiendo. Próxima ejecución: {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"[-] Durmiendo. Próxima ejecución: {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
             time.sleep(args.interval * 3600)
     else:
         run_full_etl(target_cities)
