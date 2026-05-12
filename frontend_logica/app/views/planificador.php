@@ -1204,7 +1204,7 @@
         document.getElementById('mensaje-guardado').style.display = 'none';
 
         try {
-            const response = await fetch('http://localhost:8001/planificar-menu', {
+            const response = await fetch('/api/planificar-menu', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1416,7 +1416,7 @@
                 ingredientes_en_casa: ingredientesEnCasa
             };
 
-            let response = await fetch('http://localhost:8001/comparar-lista-compra', {
+            let response = await fetch('/api/comparar-lista-compra', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

@@ -457,7 +457,7 @@ section {
             loading.style.display = 'block';
 
             try {
-                const response = await fetch('http://localhost:8001/comparar-lista-compra', {
+                const response = await fetch('/api/comparar-lista-compra', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ingredientes: input.split('\n'), ciudad: city }) 
