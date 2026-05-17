@@ -3,7 +3,10 @@ import unicodedata
 import statistics
 import re 
 import math
-from fastapi import FastAPI
+import time
+import uuid
+import logging
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
@@ -14,6 +17,12 @@ from sentence_transformers import SentenceTransformer
 from chef_service import generar_lista_desde_menu, responder_chat_receta
 
 app = FastAPI(title="Nutricionista IA")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s"
+)
+logger = logging.getLogger("nutricionista.api")
 
 # CORS 
 app.add_middleware(
@@ -34,17 +43,35 @@ try:
     client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT, timeout=5)
     client.get_collections()
     model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-    print("Sistema Nutricionista IA Online.")
+    logger.info("backend_online qdrant_host=%s", QDRANT_HOST)
 except Exception as e:
-    print(f"Error al conectar con Qdrant ({QDRANT_HOST}): {e}")
-    print("Intentando con localhost...")
+    logger.warning("qdrant_connect_error host=%s error=%s", QDRANT_HOST, str(e))
+    logger.info("retrying_qdrant_localhost")
     try:
         client = QdrantClient(host='localhost', port=6333, timeout=5)
         client.get_collections()
         model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
-        print("Conexion recuperada en Localhost.")
+        logger.info("qdrant_recovered_localhost")
     except:
-        print("Imposible conectar a la Base de Datos Vectorial.")
+        logger.error("qdrant_unavailable")
+
+
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = (time.perf_counter() - start) * 1000
+    response.headers["X-Request-ID"] = request_id
+    logger.info(
+        "request method=%s path=%s status=%s duration_ms=%.2f request_id=%s",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+        request_id,
+    )
+    return response
 
 # MODELOS 
 class ItemBusqueda(BaseModel):
@@ -893,6 +920,20 @@ async def procesar_lista_compra(lista_ingredientes: List[any], alergias: list = 
     }
 
 # ENDPOINTS 
+@app.get("/health")
+async def health():
+    qdrant_ok = client is not None
+    model_ok = model is not None
+    status = "ok" if qdrant_ok and model_ok else "degraded"
+    return {
+        "status": status,
+        "services": {
+            "qdrant": qdrant_ok,
+            "embeddings_model": model_ok,
+        },
+    }
+
+
 @app.post("/comparar-lista-compra", response_model=ComparativaFinal)
 async def comparar_lista_compra(lista: ListaCompraRequest):
     ingredientes_filtrados, _ = filtrar_ingredientes_en_casa(lista.ingredientes, lista.ingredientes_en_casa)
@@ -951,7 +992,7 @@ async def planificar_menu(req: MenuRequest):
         }
     except Exception as e:
         error_msg = traceback.format_exc()
-        print(f"💥 ERROR EN /planificar-menu: {error_msg}")
+        logger.exception("planificar_menu_error")
         return {"error": f"Error interno: {str(e)}", "traceback": error_msg}
 
 
