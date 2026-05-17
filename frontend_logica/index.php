@@ -7,6 +7,12 @@
     if (session_status() !== PHP_SESSION_ACTIVE) 
         session_start();
 
+    $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+    if (preg_match('#^/api/(planificar-menu|comparar-lista-compra|chat-receta)$#', $requestPath, $matches)) {
+        proxyToBackend('/' . $matches[1]);
+        exit;
+    }
+
     $route = $_GET['r'] ?? 'home';
 
     switch ($route) {
@@ -155,5 +161,62 @@
             $file = $base_dir . str_replace('\\', '/', $relative_class) . '.php';
             if (file_exists($file)) require $file;
         });
+    }
+
+    function proxyToBackend(string $endpoint): void
+    {
+        $backendBase = getenv('BACKEND_API_URL') ?: 'http://backend-logica:8000';
+        $targetUrl = rtrim($backendBase, '/') . $endpoint;
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        $rawBody = file_get_contents('php://input') ?: '';
+
+        $headers = [];
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        if ($contentType !== '') {
+            $headers[] = 'Content-Type: ' . $contentType;
+        }
+        $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+        if ($accept !== '') {
+            $headers[] = 'Accept: ' . $accept;
+        }
+
+        $responseContentType = 'application/json; charset=utf-8';
+        $ch = curl_init($targetUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 90);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        if ($headers) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        }
+        if ($method !== 'GET' && $method !== 'HEAD') {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $rawBody);
+        }
+        curl_setopt($ch, CURLOPT_HEADERFUNCTION, function ($curl, $headerLine) use (&$responseContentType) {
+            $length = strlen($headerLine);
+            if (stripos($headerLine, 'Content-Type:') === 0) {
+                $responseContentType = trim(substr($headerLine, strlen('Content-Type:')));
+            }
+            return $length;
+        });
+
+        $response = curl_exec($ch);
+        if ($response === false) {
+            http_response_code(502);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'error' => 'No se pudo conectar con el backend',
+                'detail' => curl_error($ch)
+            ]);
+            curl_close($ch);
+            return;
+        }
+
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        http_response_code($httpCode > 0 ? $httpCode : 502);
+        header('Content-Type: ' . $responseContentType);
+        echo $response;
     }
 ?>
