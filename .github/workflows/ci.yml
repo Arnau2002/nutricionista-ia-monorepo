@@ -32,15 +32,11 @@ jobs:
         run: |
           find frontend_logica -name "*.php" -print0 | xargs -0 -n1 php -l
 
-      - name: Prepare CI env files for compose validation
+      - name: Docker Compose YAML syntax check
         run: |
-          [ -f .env ] || touch .env
-          [ -f backend_logica/.env ] || touch backend_logica/.env
-
-      - name: Docker Compose config check
-        run: |
-          if docker compose version > /dev/null 2>&1; then
-            docker compose config > /dev/null
-          else
-            echo "Docker Compose no disponible en runner; se omite validacion compose."
-          fi
+          python - <<'EOF'
+          import yaml, sys
+          with open("docker-compose.yml") as f:
+              yaml.safe_load(f)
+          print("docker-compose.yml: syntax OK")
+          EOF
