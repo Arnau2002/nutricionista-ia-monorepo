@@ -1363,7 +1363,7 @@
 
         panel.style.display = 'block';
         select.innerHTML = recetasChat.map((r, idx) => (
-            `<option value="${idx}">${escaparHtml(r.dia)} • ${escaparHtml(r.plato)}</option>`
+            `<option value="${idx}">${escaparHtml(formatearDia(r.dia))} • ${escaparHtml(r.plato)}</option>`
         )).join('');
 
         modelo.textContent = '';
@@ -1391,7 +1391,10 @@
 
         chatLog.innerHTML = historial.map(item => {
             const clase = item.role === 'assistant' ? 'assistant' : 'user';
-            return `<div class="chat-msg ${clase}">${escaparHtml(item.content)}</div>`;
+            const contenido = item.role === 'assistant'
+                ? escaparHtml(item.content).replace(/\n/g, '<br>')
+                : escaparHtml(item.content);
+            return `<div class="chat-msg ${clase}">${contenido}</div>`;
         }).join('');
         chatLog.scrollTop = chatLog.scrollHeight;
     }
@@ -1492,6 +1495,12 @@
         }
     }
 
+    function formatearDia(texto) {
+        return (texto || '')
+            .replace(/^DIA_(\d+)$/i, 'Día $1')
+            .replace(/_/g, ' ');
+    }
+
     function renderizarMenu(data) {
         const menuDiv = document.getElementById('menu-container');
         recetasChat = Array.isArray(data.menu) ? data.menu.map(item => ({
@@ -1515,7 +1524,7 @@
             return `
             <div class="dia-grupo">
                 <div class="dia-heading">
-                    <i class="fas fa-calendar-alt"></i> ${dia}
+                    <i class="fas fa-calendar-alt"></i> ${formatearDia(dia)}
                 </div>
                 <div class="platos-fila">
                     ${platos.map((p, idx) => {

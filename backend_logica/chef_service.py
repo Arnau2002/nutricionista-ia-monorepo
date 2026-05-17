@@ -64,11 +64,12 @@ PREGUNTA DEL USUARIO:
 
 INSTRUCCIONES DE RESPUESTA:
 - Responde en espanol.
-- Da instrucciones accionables y en orden.
-- Si faltan datos del plato, asume una version razonable y dilo en una linea.
-- Incluye tiempos y trucos practicos cuando aplique.
-- Si hay riesgo de alergia/intolerancia, recuerda revisar etiquetas.
-- Maximo 180 palabras.
+- Responde SIEMPRE con pasos numerados (1. 2. 3. ...), uno por linea, en orden logico de ejecucion.
+- Cada paso debe ser concreto y accionable (incluye tiempos, temperaturas o cantidades cuando aplique).
+- Si la pregunta no requiere pasos (ej. es una duda teorica), da igualmente la respuesta en puntos numerados.
+- Si faltan datos del plato, asume una version razonable y dilo en el primer paso.
+- Si hay riesgo de alergia/intolerancia, incluye un paso de aviso al final.
+- Maximo 220 palabras.
 """
 
     ultimo_error = ""
