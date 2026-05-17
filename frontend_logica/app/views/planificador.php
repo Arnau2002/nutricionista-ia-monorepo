@@ -938,6 +938,81 @@
         padding: 15px 25px;
     }
 
+    .menu-chat-panel {
+        margin-top: 22px;
+        padding: 18px;
+        border-radius: 14px;
+        border: 1px solid rgba(59, 130, 246, 0.25);
+        background: linear-gradient(160deg, rgba(30, 41, 59, 0.62) 0%, rgba(15, 23, 42, 0.78) 100%);
+    }
+
+    [data-theme="light"] .menu-chat-panel {
+        background: linear-gradient(160deg, #f8fbff 0%, #eef4fb 100%);
+        border-color: #bfdbfe;
+    }
+
+    .menu-chat-toolbar {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .chat-log {
+        max-height: 260px;
+        overflow-y: auto;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(2, 6, 23, 0.45);
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    [data-theme="light"] .chat-log {
+        background: #ffffff;
+        border-color: #dbeafe;
+    }
+
+    .chat-msg {
+        margin-bottom: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        line-height: 1.45;
+        font-size: 0.92rem;
+    }
+
+    .chat-msg.user {
+        margin-left: 18px;
+        background: rgba(37, 99, 235, 0.18);
+        border: 1px solid rgba(96, 165, 250, 0.4);
+    }
+
+    .chat-msg.assistant {
+        margin-right: 18px;
+        background: rgba(16, 185, 129, 0.16);
+        border: 1px solid rgba(52, 211, 153, 0.35);
+    }
+
+    .chat-input-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+    }
+
+    .chat-helper {
+        margin-top: 8px;
+        font-size: 0.8rem;
+        color: var(--muted);
+    }
+
+    @media (max-width: 700px) {
+        .menu-chat-toolbar,
+        .chat-input-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
     @media (max-width: 850px) {
         .comparison-grid {
             grid-template-columns: 1fr;
@@ -1034,6 +1109,24 @@
         </div>
 
         <div id="menu-container"></div>
+
+        <div id="menu-chat-panel" class="menu-chat-panel" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+                <h4 style="margin:0; font-size:1.1rem; font-weight:900;">🧠 Copiloto de Recetas</h4>
+                <span id="chat-modelo" style="font-size:0.78rem; color:var(--muted);"></span>
+            </div>
+            <div class="menu-chat-toolbar">
+                <select id="recipe-chat-select"></select>
+                <button class="btn-checklist" type="button" onclick="limpiarChatReceta()">Limpiar chat</button>
+            </div>
+            <div id="recipe-chat-log" class="chat-log"></div>
+            <div class="chat-input-row">
+                <input id="recipe-chat-input" type="text" placeholder="Ej: ¿Cómo preparo este plato en 25 minutos?" onkeypress="manejarEnterChatReceta(event)">
+                <button id="recipe-chat-send" class="btn-chef" style="padding: 10px 18px; font-size:0.95rem;" type="button" onclick="enviarMensajeChatReceta()">Preguntar</button>
+            </div>
+            <div class="chat-helper">Consejo: pregunta por tiempos, sustitutos, batch cooking, conservación o versión sin alérgenos.</div>
+        </div>
+
         <div id="ingredientes-meta" class="dia-grupo" style="display:none; margin-top: 20px;"></div>
 
         <h3 style="margin: 40px 0 20px; font-weight: 900; font-size: 1.8rem;">🛒 Lista de la Compra</h3>
@@ -1150,6 +1243,8 @@
     // Variable global para guardar los datos de la IA temporalmente
     let currentMenuData = null;
     let ingredientesChecklist = [];
+    let recetasChat = [];
+    let chatHistorialPorReceta = {};
 
     // PERSISTENCIA: Cargar al iniciar
     window.addEventListener('load', () => {
@@ -1240,12 +1335,175 @@
         }
     }
 
+    function obtenerKeyReceta(receta) {
+        const dia = (receta?.dia || '').trim();
+        const plato = (receta?.plato || '').trim();
+        return `${dia}__${plato}`;
+    }
+
+    function escaparHtml(texto) {
+        return String(texto || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function renderizarSelectorChat() {
+        const panel = document.getElementById('menu-chat-panel');
+        const select = document.getElementById('recipe-chat-select');
+        const chatLog = document.getElementById('recipe-chat-log');
+        const modelo = document.getElementById('chat-modelo');
+
+        if (!recetasChat.length) {
+            panel.style.display = 'none';
+            return;
+        }
+
+        panel.style.display = 'block';
+        select.innerHTML = recetasChat.map((r, idx) => (
+            `<option value="${idx}">${escaparHtml(r.dia)} • ${escaparHtml(r.plato)}</option>`
+        )).join('');
+
+        modelo.textContent = '';
+        chatLog.innerHTML = '<div class="chat-msg assistant">Pregunta lo que quieras sobre la receta seleccionada. Te doy pasos, tiempos y sustituciones.</div>';
+    }
+
+    function pintarChatActual() {
+        const select = document.getElementById('recipe-chat-select');
+        const chatLog = document.getElementById('recipe-chat-log');
+        const idx = Number(select.value);
+
+        if (!Number.isInteger(idx) || idx < 0 || idx >= recetasChat.length) {
+            chatLog.innerHTML = '<div class="chat-msg assistant">Selecciona un plato para empezar.</div>';
+            return;
+        }
+
+        const receta = recetasChat[idx];
+        const key = obtenerKeyReceta(receta);
+        const historial = chatHistorialPorReceta[key] || [];
+
+        if (!historial.length) {
+            chatLog.innerHTML = '<div class="chat-msg assistant">Estoy listo para ayudarte con esta receta. Pregunta por técnica, tiempos o sustituciones.</div>';
+            return;
+        }
+
+        chatLog.innerHTML = historial.map(item => {
+            const clase = item.role === 'assistant' ? 'assistant' : 'user';
+            return `<div class="chat-msg ${clase}">${escaparHtml(item.content)}</div>`;
+        }).join('');
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function abrirChatReceta(platoEncoded, descripcionEncoded, diaEncoded) {
+        const plato = decodeURIComponent(platoEncoded || '');
+        const descripcion = decodeURIComponent(descripcionEncoded || '');
+        const dia = decodeURIComponent(diaEncoded || '');
+        const select = document.getElementById('recipe-chat-select');
+        const panel = document.getElementById('menu-chat-panel');
+
+        if (!select || !panel) return;
+
+        const idx = recetasChat.findIndex(r => r.plato === plato && r.dia === dia);
+        if (idx >= 0) {
+            select.value = String(idx);
+            pintarChatActual();
+            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            document.getElementById('recipe-chat-input').focus();
+        }
+    }
+
+    function manejarEnterChatReceta(event) {
+        if (event.key === 'Enter') {
+            enviarMensajeChatReceta();
+        }
+    }
+
+    function limpiarChatReceta() {
+        const select = document.getElementById('recipe-chat-select');
+        const idx = Number(select.value);
+        if (!Number.isInteger(idx) || idx < 0 || idx >= recetasChat.length) return;
+
+        const receta = recetasChat[idx];
+        const key = obtenerKeyReceta(receta);
+        chatHistorialPorReceta[key] = [];
+        document.getElementById('chat-modelo').textContent = '';
+        pintarChatActual();
+    }
+
+    async function enviarMensajeChatReceta() {
+        const select = document.getElementById('recipe-chat-select');
+        const input = document.getElementById('recipe-chat-input');
+        const btn = document.getElementById('recipe-chat-send');
+        const idx = Number(select.value);
+        const pregunta = (input.value || '').trim();
+
+        if (!Number.isInteger(idx) || idx < 0 || idx >= recetasChat.length) {
+            alert('Selecciona una receta para chatear.');
+            return;
+        }
+
+        if (!pregunta) {
+            alert('Escribe una pregunta para el copiloto de recetas.');
+            return;
+        }
+
+        const receta = recetasChat[idx];
+        const key = obtenerKeyReceta(receta);
+        if (!chatHistorialPorReceta[key]) {
+            chatHistorialPorReceta[key] = [];
+        }
+
+        chatHistorialPorReceta[key].push({ role: 'user', content: pregunta });
+        pintarChatActual();
+        input.value = '';
+
+        btn.disabled = true;
+        btn.textContent = 'Pensando...';
+
+        try {
+            const response = await fetch('/api/chat-receta', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    plato: receta.plato,
+                    descripcion: receta.descripcion,
+                    dia: receta.dia,
+                    pregunta,
+                    historial: chatHistorialPorReceta[key]
+                })
+            });
+
+            const data = await response.json();
+            if (!response.ok || data.error) {
+                throw new Error(data.error || `Error HTTP ${response.status}`);
+            }
+
+            chatHistorialPorReceta[key].push({ role: 'assistant', content: data.respuesta || 'No pude generar respuesta.' });
+            document.getElementById('chat-modelo').textContent = data.modelo ? `Modelo: ${data.modelo}` : '';
+            pintarChatActual();
+        } catch (error) {
+            chatHistorialPorReceta[key].push({ role: 'assistant', content: `No he podido responder ahora mismo: ${error.message}` });
+            pintarChatActual();
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Preguntar';
+        }
+    }
+
     function renderizarMenu(data) {
         const menuDiv = document.getElementById('menu-container');
+        recetasChat = Array.isArray(data.menu) ? data.menu.map(item => ({
+            dia: item.dia || '',
+            plato: item.plato || '',
+            descripcion: item.descripcion || ''
+        })) : [];
+        chatHistorialPorReceta = {};
 
         // Agrupar por día para visualización horizontal
         const diasAgrupados = {};
-        data.menu.forEach(item => {
+        (data.menu || []).forEach(item => {
             const diaNombre = item.dia.split(' - ')[0] || item.dia;
             if (!diasAgrupados[diaNombre]) diasAgrupados[diaNombre] = [];
             diasAgrupados[diaNombre].push(item);
@@ -1253,8 +1511,6 @@
 
         menuDiv.innerHTML = Object.keys(diasAgrupados).map(dia => {
             const platos = diasAgrupados[dia];
-            // Normalizar el nombre del día para usarlo en IDs (elimina acentos y espacios)
-            const diaId = dia.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\W/g, '');
 
             return `
             <div class="dia-grupo">
@@ -1263,8 +1519,10 @@
                 </div>
                 <div class="platos-fila">
                     ${platos.map((p, idx) => {
-                const cardId = `img-${diaId}-${idx}`;
                 const momento = p.dia.split(' - ')[1] || '';
+                const platoEncoded = encodeURIComponent(p.plato || '');
+                const descripcionEncoded = encodeURIComponent(p.descripcion || '');
+                const diaEncoded = encodeURIComponent(p.dia || '');
                 return `
                         <div class="dia-card">
                             <div class="momento-tag">${momento}</div>
@@ -1278,6 +1536,7 @@
                             </div>
                             <div class="plato-nombre">${p.plato}</div>
                             <div class="plato-desc">${p.descripcion}</div>
+                            <button type="button" class="btn-checklist" style="margin-top:10px;" onclick="abrirChatReceta('${platoEncoded}', '${descripcionEncoded}', '${diaEncoded}')">💬 Ver instrucciones</button>
                         </div>
                         `;
             }).join('')}
@@ -1311,6 +1570,8 @@
 
         ingredientesChecklist = ingredientes;
         renderizarChecklist(ingredientes, excluidos);
+        renderizarSelectorChat();
+        document.getElementById('recipe-chat-select').onchange = pintarChatActual;
 
         document.getElementById('comparativa-wrapper').style.display = 'none';
     }
