@@ -11,7 +11,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from sentence_transformers import SentenceTransformer
 
-from chef_service import generar_lista_desde_menu
+from chef_service import generar_lista_desde_menu, responder_chat_receta
 
 app = FastAPI(title="Nutricionista IA")
 
@@ -72,6 +72,13 @@ class MenuRequest(BaseModel):
     incluir_snacks: Optional[bool] = False
     ciudad: Optional[str] = "Valencia"
     ingredientes_en_casa: Optional[List[str]] = []
+
+class ChatRecetaRequest(BaseModel):
+    plato: str
+    descripcion: Optional[str] = ""
+    dia: Optional[str] = ""
+    pregunta: str
+    historial: Optional[List[dict]] = []
 
 class ComparativaFinal(BaseModel):
     mejor_supermercado: str
@@ -946,3 +953,27 @@ async def planificar_menu(req: MenuRequest):
         error_msg = traceback.format_exc()
         print(f"💥 ERROR EN /planificar-menu: {error_msg}")
         return {"error": f"Error interno: {str(e)}", "traceback": error_msg}
+
+
+@app.post("/chat-receta")
+async def chat_receta(req: ChatRecetaRequest):
+    pregunta = (req.pregunta or "").strip()
+    if not pregunta:
+        return {"error": "La pregunta no puede estar vacia"}
+
+    receta_ctx = {
+        "plato": req.plato,
+        "descripcion": req.descripcion or "",
+        "dia": req.dia or ""
+    }
+
+    respuesta = responder_chat_receta(
+        pregunta=pregunta,
+        receta=receta_ctx,
+        historial=req.historial or []
+    )
+
+    if "error" in respuesta:
+        return {"error": respuesta["error"]}
+
+    return respuesta

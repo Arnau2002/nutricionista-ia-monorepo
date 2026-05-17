@@ -2,6 +2,7 @@ import os
 import json
 import google.generativeai as genai
 import urllib.parse
+from typing import Optional
 from dotenv import load_dotenv
 
 # Carga de configuración
@@ -11,6 +12,81 @@ pollinations_key = os.getenv("POLLINATIONS_API_KEY")
 
 if api_key:
     genai.configure(api_key=api_key)
+
+
+def responder_chat_receta(pregunta: str, receta: dict, historial: Optional[list] = None):
+    """Responde dudas de preparacion sobre un plato concreto del menu."""
+    if not api_key:
+        return {"error": "Falta configurar la API Key del Chef"}
+
+    pregunta_limpia = (pregunta or "").strip()
+    if not pregunta_limpia:
+        return {"error": "La pregunta no puede estar vacia"}
+
+    modelos_a_probar = [
+        'gemini-3-flash-preview',
+        'gemini-2.5-flash',
+        'gemini-2.0-flash'
+    ]
+
+    plato = (receta or {}).get("plato", "Plato sin nombre")
+    descripcion = (receta or {}).get("descripcion", "")
+    dia = (receta or {}).get("dia", "")
+
+    historial = historial or []
+    historial_limpio = []
+    for turno in historial[-8:]:
+        if not isinstance(turno, dict):
+            continue
+        role = str(turno.get("role", "user")).strip().lower()
+        contenido = str(turno.get("content", "")).strip()
+        if not contenido:
+            continue
+        if role not in ["user", "assistant"]:
+            role = "user"
+        etiqueta = "Usuario" if role == "user" else "Copiloto"
+        historial_limpio.append(f"{etiqueta}: {contenido}")
+
+    contexto_historial = "\n".join(historial_limpio) if historial_limpio else "Sin historial previo."
+
+    prompt = f"""Eres un asistente de cocina practico y muy claro.
+
+CONTEXTO DEL PLATO:
+- Dia/comida: {dia}
+- Plato: {plato}
+- Ingredientes del menu: {descripcion}
+
+HISTORIAL:
+{contexto_historial}
+
+PREGUNTA DEL USUARIO:
+{pregunta_limpia}
+
+INSTRUCCIONES DE RESPUESTA:
+- Responde en espanol.
+- Da instrucciones accionables y en orden.
+- Si faltan datos del plato, asume una version razonable y dilo en una linea.
+- Incluye tiempos y trucos practicos cuando aplique.
+- Si hay riesgo de alergia/intolerancia, recuerda revisar etiquetas.
+- Maximo 180 palabras.
+"""
+
+    ultimo_error = ""
+    for nombre_modelo in modelos_a_probar:
+        try:
+            model = genai.GenerativeModel(nombre_modelo)
+            response = model.generate_content(prompt)
+            texto = (response.text or "").strip()
+            if texto:
+                return {
+                    "respuesta": texto,
+                    "modelo": nombre_modelo
+                }
+        except Exception as e:
+            ultimo_error = str(e)
+            continue
+
+    return {"error": f"El chat del Chef no esta disponible. Ultimo error: {ultimo_error}"}
 
 def generar_lista_desde_menu(prefs: dict):
     print(f"👨‍🍳 Chef iniciando petición para {prefs.get('num_personas', 2)} personas y {prefs.get('num_dias', 7)} días.")
