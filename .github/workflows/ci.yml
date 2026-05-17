@@ -32,6 +32,11 @@ jobs:
         run: |
           find frontend_logica -name "*.php" -print0 | xargs -0 -n1 php -l
 
+      - name: Prepare CI env files for compose validation
+        run: |
+          [ -f .env ] || touch .env
+          [ -f backend_logica/.env ] || touch backend_logica/.env
+
       - name: Docker Compose config check
         run: |
           docker compose config > /dev/null
