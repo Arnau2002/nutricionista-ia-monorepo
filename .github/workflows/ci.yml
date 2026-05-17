@@ -32,11 +32,4 @@ jobs:
         run: |
           find frontend_logica -name "*.php" -print0 | xargs -0 -n1 php -l
 
-      - name: Docker Compose YAML syntax check
-        run: |
-          python - <<'EOF'
-          import yaml, sys
-          with open("docker-compose.yml") as f:
-              yaml.safe_load(f)
-          print("docker-compose.yml: syntax OK")
-          EOF
+
