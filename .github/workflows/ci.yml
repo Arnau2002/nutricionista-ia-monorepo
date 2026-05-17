@@ -33,9 +33,4 @@ jobs:
           find frontend_logica -name "*.php" -print0 | xargs -0 -n1 php -l
 
 
-<<<<<<< HEAD
-=======
-      - name: Docker Compose config check
-        run: |
-          docker compose config > /dev/null
->>>>>>> parent of d4921eff (Update ci.yml)
+
