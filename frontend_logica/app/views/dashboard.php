@@ -297,8 +297,12 @@ try {
                     ?>
                     <div class="history-item">
                         <div class="item-date">
-                            <?php echo date('d M, Y', strtotime($cesta['created_at'])); ?>
-                            <span><?php echo date('H:i', strtotime($cesta['created_at'])); ?></span>
+                            <?php 
+                                $dt = new DateTime($cesta['created_at'], new DateTimeZone('UTC'));
+                                $dt->setTimezone(new DateTimeZone('Europe/Madrid'));
+                                echo $dt->format('d M, Y'); 
+                            ?>
+                            <span><?php echo $dt->format('H:i'); ?></span>
                         </div>
                         <div>
                             <span class="badge-winner <?php echo $badgeClass; ?>"><?php echo $winner; ?></span>
