@@ -49,7 +49,7 @@ try {
     }
 
     // 6. Insertar en la tabla
-    $stmt = $pdo->prepare("INSERT INTO saved_baskets (user_id, total_price, winner_store, json_data) VALUES (?, ?, ?, ?)");
+    $stmt = $pdo->prepare("INSERT INTO saved_baskets (user_id, total_price, winner_supermarket, basket_data) VALUES (?, ?, ?, ?)");
     
     $stmt->execute([
         $user_id,

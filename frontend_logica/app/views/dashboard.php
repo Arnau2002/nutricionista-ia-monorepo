@@ -27,9 +27,9 @@ try {
         $merca_count = 0;
         $dia_count = 0;
         foreach ($cestas as $c) {
-            $data = json_decode($c['json_data'], true);
+            $data = json_decode($c['basket_data'], true);
             $stats['ahorro_total'] += floatval($data['ahorro_total'] ?? 0);
-            if ($c['winner_store'] == 'Mercadona') $merca_count++;
+            if ($c['winner_supermarket'] == 'Mercadona') $merca_count++;
             else $dia_count++;
         }
         $stats['favorito'] = ($merca_count >= $dia_count) ? 'Mercadona' : 'Dia';
@@ -291,9 +291,9 @@ try {
             <div class="history-list">
                 <?php foreach ($cestas as $cesta): ?>
                     <?php 
-                        $winner = htmlspecialchars($cesta['winner_store']);
+                        $winner = htmlspecialchars($cesta['winner_supermarket']);
                         $badgeClass = ($winner == 'Mercadona') ? 'badge-mercadona' : 'badge-dia';
-                        $jsonSafe = htmlspecialchars($cesta['json_data'], ENT_QUOTES, 'UTF-8');
+                        $jsonSafe = htmlspecialchars($cesta['basket_data'], ENT_QUOTES, 'UTF-8');
                     ?>
                     <div class="history-item">
                         <div class="item-date">
